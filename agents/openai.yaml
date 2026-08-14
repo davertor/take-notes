@@ -1,0 +1,5 @@
+# User-invoked only: pairs with `disable-model-invocation: true` in SKILL.md.
+# Codex/ChatGPT then requires an explicit `$skill` invocation and never
+# auto-triggers this skill from a prompt.
+policy:
+  allow_implicit_invocation: false
