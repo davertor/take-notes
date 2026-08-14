@@ -1,15 +1,7 @@
 MIT License
 
 Copyright (c) 2026 Daniel Verdu
-
-Portions of this software — scripts/config.py, scripts/download.py,
-scripts/transcribe.py, scripts/whisper.py and scripts/setup.py — are copied
-from the `claude-video` project and remain:
-
-Copyright (c) 2026 Bradley Bonanno
-https://github.com/bradautomates/claude-video
-
-Both are made available under the same terms:
+Copyright (c) 2026 Bradley Bonanno (portions — see NOTICE)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
