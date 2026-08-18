@@ -1,7 +1,17 @@
 ---
 name: take-notes
 description: Turn a YouTube video or a web article into didactic study notes, written as a self-contained HTML page under ~/take-notes/html_reports and opened in the browser.
-argument-hint: "<video-or-article-url> [focus or question]"
+license: MIT
+compatibility: Requires uv. Video sources also need yt-dlp and ffmpeg, plus network access; an optional Groq or OpenAI key enables Whisper for videos without captions.
+metadata:
+  author: davertor
+  version: "1.0.0"
+# Claude Code extensions below — not in the agentskills.io spec, and read at the
+# top level rather than under `metadata`, which is where Claude Code looks.
+# `allowed-tools` stays comma-separated: the spec asks for spaces but marks the
+# field experimental ("support may vary"), and commas are what Claude Code
+# parses today. Do not "correct" either without testing in Claude Code first.
+argument-hint: "<video-or-article-url> [focus or question] [--lang en|es]"
 allowed-tools: Bash, Read, WebFetch, AskUserQuestion
 disable-model-invocation: true
 ---
@@ -70,19 +80,31 @@ acquisition detail here. Two copies of the writing standard will drift.
 This skill writes in **English or Spanish only**. Resolve which, in this order,
 and stop at the first that applies:
 
-1. **The invocation.** The user named a language for this run ("take notes on
-   this in English") — use it.
-2. **`~/take-notes/config.json`.** Read it. `"language": "en"` or `"es"` → use
+1. **`--lang en` or `--lang es` in the invocation.** Wins over everything,
+   including a config set to `"ask"` — an explicit flag is not a question.
+2. **A language named in plain words** in the invocation ("take notes on this in
+   English"). Same standing as the flag; if somehow both appear, the flag wins.
+3. **`~/take-notes/config.json`.** Read it. `"language": "en"` or `"es"` → use
    it. `"language": "ask"` → go to the question below.
-3. **Default: English.** No config, an unreadable one, or any other value — a
+4. **Default: English.** No config, an unreadable one, or any other value — a
    broken config must never block the run.
 
 ```json
 { "language": "es" }
 ```
 
-When you resolve to a language **without asking**, say so in one short line, and
-name the config file so it is discoverable and correctable:
+`--lang` with anything other than `en` or `es` is **not** an error to stop on,
+and must not be passed through: `render.py` silently falls back to English
+chrome for unknown codes, which would pair English furniture with prose in a
+third language. Say the value is unsupported, resolve from step 3 onward, and
+name what you used instead:
+
+> `--lang fr` is not supported (English or Spanish only) — writing in Spanish per your config.
+
+When you resolve to a language **without asking**, say so in one short line.
+Point at the config file only when the language came from the config or the
+default — someone who just typed `--lang en` does not need to be told how to
+set a preference they have overridden:
 
 > Writing in English (default). Set `"language"` in `~/take-notes/config.json` to change.
 

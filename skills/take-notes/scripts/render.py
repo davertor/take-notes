@@ -22,7 +22,7 @@ from pathlib import Path
 
 
 DEFAULT_OUT_DIR = Path.home() / "take-notes" / "html_reports"
-TEMPLATE_PATH = Path(__file__).resolve().parent / "template.html"
+TEMPLATE_PATH = Path(__file__).resolve().parent.parent / "assets" / "template.html"
 
 # The only two languages Step 2 ever offers (see SKILL.md). Whole sentences,
 # not word-by-word substitution: concatenating translated fragments breaks
