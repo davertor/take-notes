@@ -29,6 +29,7 @@
   --rail:    23rem;
   --label:   7rem;
   --frame:   49rem;
+  --sheet:   96rem;   /* caps rail+content as one unit on wide screens; see .sheet */
   --grain:   .04;
 }
 @media (prefers-color-scheme: dark) {
@@ -108,7 +109,14 @@ figcaption {
 }
 
 /* --- Shell ---------------------------------------------------------------- */
-.sheet { display: flex; align-items: flex-start; min-height: 100vh; }
+/* Cap the whole rail+content composition and centre it as one unit past
+   --sheet: growing --frame instead would stretch prose past a comfortable
+   line length, and letting only .column centre leaves the extra space
+   stranded to the right of the text with the rail pinned flush left. */
+.sheet {
+  display: flex; align-items: flex-start; min-height: 100vh;
+  max-width: var(--sheet); margin-inline: auto;
+}
 
 /* --- Rail ----------------------------------------------------------------- */
 .rail {
