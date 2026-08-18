@@ -33,7 +33,7 @@ edit the note-writing standard or the templates directly. Neither auto-updates
 in the background — pick whichever fits how you want to receive changes, then
 re-run it (or `git pull`) when you want the latest.
 
-### The skills CLI
+### Option A — the skills CLI
 
 ```sh
 npx skills add davertor/take-notes -g              # install for your user
@@ -45,17 +45,22 @@ npx skills add davertor/take-notes -g -a claude-code   # one agent only
 folder instead of your user directories. Update with `npx skills update
 take-notes` — it does not happen on its own.
 
-### Clone + symlink, for tinkering
+### Option B — clone + symlink, for tinkering
 
 ```sh
 git clone https://github.com/davertor/take-notes ~/take-notes-src
-ln -s ~/take-notes-src/skills/take-notes ~/.claude/skills/take-notes
+~/take-notes-src/link-skill.sh
 ```
 
-Other valid targets: `~/.codex/skills/`, `~/.cursor/skills/`,
-`~/.config/opencode/skills/`, `~/.gemini/skills/`, `~/.agents/skills/`. It's a
-real checkout — edit anything under `skills/take-notes/` directly, then `git
-pull` in `~/take-notes-src` for upstream changes.
+[`link-skill.sh`](link-skill.sh) symlinks `skills/take-notes` into every tool
+it knows how to find (`~/.claude/skills/`, `~/.codex/skills/`,
+`~/.cursor/skills/`, `~/.config/opencode/skills/`, `~/.gemini/skills/`,
+`~/.agents/skills/`) in one pass. It's idempotent — safe to re-run any time,
+including after `git pull` — and if something already occupies a target
+(a stale copy, a symlink pointing elsewhere) it replaces it rather than
+leaving two versions installed. It's a real checkout either way: edit
+anything under `skills/take-notes/` directly, then `git pull` in
+`~/take-notes-src` for upstream changes.
 
 ### What you'll need
 
