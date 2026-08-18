@@ -14,11 +14,16 @@ summary — the note-writing happens back in SKILL.md and needs the real text:
 
 > Return the complete article body as Markdown, preserving heading structure,
 > lists, code blocks and tables verbatim. Do not summarise or paraphrase. Also
+> preserve every figure, diagram, chart, or screenshot as a standard Markdown
+> image tag ![alt text](absolute image URL), keeping it in its original
+> position in the text, with any caption text immediately after it. Also
 > report: the title, the author or publishing site, the publication date, and
 > the heading anchors if the page has them.
 
 Keep the headings. They become the `## Section outline`, and their anchors are
-what make it clickable.
+what make it clickable. Keep the images too — verified live: `WebFetch` returns
+real, absolute, hotlink-stable image URLs when asked, in document order, with
+captions attached. It returns none of that unasked, so don't drop this line.
 
 ## Map the response to the Step 1 fields
 

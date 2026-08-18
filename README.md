@@ -8,6 +8,22 @@ browser.
 Works in **Claude Code, Codex, Cursor, OpenCode, and Gemini CLI** — one
 `SKILL.md`, no per-tool variants.
 
+<table>
+<tr>
+<td align="center" width="50%">
+<a href="docs/video-note.png"><img src="docs/video-note.png" width="380" alt="Video note — rail with poster, timestamped index, and scroll-spy sections"></a>
+<br><sub><b>Video note</b> — poster, timestamped index, scroll-spy</sub>
+</td>
+<td align="center" width="50%">
+<a href="docs/article-note.png"><img src="docs/article-note.png" width="380" alt="Article note — rail with byline kicker, numbered index, and scroll-spy sections"></a>
+<br><sub><b>Article note</b> — byline kicker, numbered index, scroll-spy</sub>
+</td>
+</tr>
+</table>
+
+Click either thumbnail for the full-size page. Both real output — the skill
+run end to end on an actual video and an actual blog post, not mockups.
+
 ## Install
 
 Clone and symlink the skill folder into whichever directory your tool reads,
@@ -95,6 +111,7 @@ skills/take-notes/
     ...                    transcript helpers (see Credits)
   assets/
     template.html         the two-pane video note layout
+    article-template.html the two-pane article note layout
   agents/
     openai.yaml           Codex: never auto-invoke, require an explicit $skill
 ```
