@@ -26,41 +26,32 @@ run end to end on an actual video and an actual blog post, not mockups.
 
 ## Install
 
-Two ways in, two philosophies. **The skills CLI** links the skill into
-whatever agent directories you have — quick, and every tool gets it in one
-shot. **Clone + symlink** gives you a real git checkout instead, so you can
-edit the note-writing standard or the templates directly. Neither auto-updates
-in the background — pick whichever fits how you want to receive changes, then
-re-run it (or `git pull`) when you want the latest.
+Two ways in. Neither auto-updates — re-run it (or `git pull`) for the latest.
 
-### Option A — the skills CLI
+### Option A — clone + symlink, for tinkering
 
 ```sh
-npx skills add davertor/take-notes -g              # install for your user
-npx skills add davertor/take-notes -l              # preview first
+git clone https://github.com/davertor/take-notes
+~/take-notes/link-skill.sh              # every tool
+AGENT=claude ~/take-notes/link-skill.sh # one tool only
+```
+
+[`link-skill.sh`](link-skill.sh) symlinks `skills/take-notes` into each
+tool's skills directory (`claude`, `codex`, `cursor`, `opencode`, `gemini`,
+`agents`). Idempotent, and replaces anything already occupying a target. A
+real checkout — edit `skills/take-notes/` directly, or `git pull` for
+upstream changes.
+
+### Option B — the skills CLI
+
+```sh
+npx skills add davertor/take-notes -g                  # install for your user
 npx skills add davertor/take-notes -g -a claude-code   # one agent only
 ```
 
-**Pass `-g`.** Without it, `add` installs *project-level* into the current
+**Pass `-g`** — without it, `add` installs project-level into the current
 folder instead of your user directories. Update with `npx skills update
-take-notes` — it does not happen on its own.
-
-### Option B — clone + symlink, for tinkering
-
-```sh
-git clone https://github.com/davertor/take-notes ~/take-notes-src
-~/take-notes-src/link-skill.sh
-```
-
-[`link-skill.sh`](link-skill.sh) symlinks `skills/take-notes` into every tool
-it knows how to find (`~/.claude/skills/`, `~/.codex/skills/`,
-`~/.cursor/skills/`, `~/.config/opencode/skills/`, `~/.gemini/skills/`,
-`~/.agents/skills/`) in one pass. It's idempotent — safe to re-run any time,
-including after `git pull` — and if something already occupies a target
-(a stale copy, a symlink pointing elsewhere) it replaces it rather than
-leaving two versions installed. It's a real checkout either way: edit
-anything under `skills/take-notes/` directly, then `git pull` in
-`~/take-notes-src` for upstream changes.
+take-notes`.
 
 ### What you'll need
 

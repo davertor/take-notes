@@ -1,12 +1,16 @@
 #!/usr/bin/env bash
 #
-# link-skill.sh — symlink skills/take-notes into every AI coding tool's
-# skills directory, so a `git pull` in this checkout updates it everywhere.
+# link-skill.sh — symlink skills/take-notes into one or all AI coding tools'
+# skills directories, so a `git pull` in this checkout updates it everywhere.
 #
 # Source: <this repo>/skills/take-notes
 # Targets (canonical global skill-discovery path for each tool):
-#   ~/.claude/skills/          ~/.codex/skills/       ~/.cursor/skills/
-#   ~/.config/opencode/skills/ ~/.gemini/skills/      ~/.agents/skills/
+#   claude   ~/.claude/skills/          codex     ~/.codex/skills/
+#   cursor   ~/.cursor/skills/          opencode  ~/.config/opencode/skills/
+#   gemini   ~/.gemini/skills/          agents    ~/.agents/skills/
+#
+# With no AGENT, links all of them. Set AGENT to link only that one, e.g.:
+#   AGENT=codex ~/take-notes/link-skill.sh
 #
 # Policy: if a target already has something named take-notes — a real
 # directory, a file, or a symlink pointing elsewhere — it is OVERWRITTEN with
@@ -22,7 +26,8 @@ if [[ ! -f "$SRC_DIR/SKILL.md" ]]; then
   exit 1
 fi
 
-TARGETS=(
+AGENT_NAMES=(claude codex cursor opencode gemini agents)
+AGENT_DIRS=(
   "$HOME/.claude/skills"
   "$HOME/.codex/skills"
   "$HOME/.cursor/skills"
@@ -30,6 +35,18 @@ TARGETS=(
   "$HOME/.gemini/skills"
   "$HOME/.agents/skills"
 )
+
+TARGETS=("${AGENT_DIRS[@]}")
+if [[ -n "${AGENT:-}" ]]; then
+  TARGETS=()
+  for i in "${!AGENT_NAMES[@]}"; do
+    [[ "${AGENT_NAMES[$i]}" == "$AGENT" ]] && TARGETS=("${AGENT_DIRS[$i]}")
+  done
+  if [[ ${#TARGETS[@]} -eq 0 ]]; then
+    printf 'error: unknown AGENT "%s". Choose one of: %s\n' "$AGENT" "${AGENT_NAMES[*]}" >&2
+    exit 1
+  fi
+fi
 
 linked=0
 replaced=0
