@@ -8,17 +8,38 @@ browser.
 Works in **Claude Code, Codex, Cursor, OpenCode, and Gemini CLI** — one
 `SKILL.md`, no per-tool variants.
 
+Supported sources:
+
+- **YouTube** — any video URL, including ones yt-dlp supports beyond YouTube
+- **Local media files** — video/audio already on disk
+- **Web articles** — blog posts, docs pages, news articles (any other `http(s)` page)
+
 <table>
+
 <tr>
+
 <td align="center" width="50%">
-<a href="docs/video-note.png"><img src="docs/video-note.png" width="380" alt="Video note — rail with poster, timestamped index, and scroll-spy sections"></a>
+
+<a href="docs/video-note.png"><img src="docs/video-note.png" width="380" alt="Video note — rail with poster, timestamped index, and scroll-spy sections">
+
+</a>
+
 <br><sub><b>Video note</b> — poster, timestamped index, scroll-spy</sub>
+
 </td>
+
 <td align="center" width="50%">
-<a href="docs/article-note.png"><img src="docs/article-note.png" width="380" alt="Article note — rail with byline kicker, numbered index, and scroll-spy sections"></a>
+
+<a href="docs/article-note.png"><img src="docs/article-note.png" width="380" alt="Article note — rail with byline kicker, numbered index, and scroll-spy sections">
+
+</a>
+
 <br><sub><b>Article note</b> — byline kicker, numbered index, scroll-spy</sub>
+
 </td>
+
 </tr>
+
 </table>
 
 Click either thumbnail for the full-size page. Both real output — the skill
@@ -32,8 +53,9 @@ Two ways in. Neither auto-updates — re-run it (or `git pull`) for the latest.
 
 ```sh
 git clone https://github.com/davertor/take-notes
-~/take-notes/link-skill.sh              # every tool
-AGENT=claude ~/take-notes/link-skill.sh # one tool only
+cd take-notes
+./link-skill.sh              # every tool
+AGENT=claude ./link-skill.sh # one tool only
 ```
 
 [`link-skill.sh`](link-skill.sh) symlinks `skills/take-notes` into each
@@ -50,16 +72,17 @@ npx skills add davertor/take-notes -g -a claude-code   # one agent only
 ```
 
 **Pass `-g`** — without it, `add` installs project-level into the current
-folder instead of your user directories. Update with `npx skills update
-take-notes`.
+folder instead of your user directories. Update with `npx skills update take-notes`.
 
 ### What you'll need
 
-| | |
-|---|---|
-| **[uv](https://docs.astral.sh/uv/)** | runs the scripts; provisions its own Python, no separate install |
-| **yt-dlp + ffmpeg** | video sources only — `scripts/setup.py` installs them via Homebrew on macOS |
-| **Whisper API key** | optional, only for videos without captions — Groq or OpenAI, read from `~/.config/watch/.env` |
+
+|                                      |                                                                                               |
+| ------------------------------------ | --------------------------------------------------------------------------------------------- |
+| [**uv**](https://docs.astral.sh/uv/) | runs the scripts; provisions its own Python, no separate install                              |
+| **yt-dlp + ffmpeg**                  | video sources only — `scripts/setup.py` installs them via Homebrew on macOS                   |
+| **Whisper API key**                  | optional, only for videos without captions — Groq or OpenAI, read from `~/.config/watch/.env` |
+
 
 Web articles need none of the above — that path uses the agent's fetch tool.
 
@@ -127,10 +150,5 @@ instead of duplicating it.
 
 ## Credits
 
-`scripts/config.py`, `download.py`, `transcribe.py`, `whisper.py` and
-`setup.py` originated from
-[bradautomates/claude-video](https://github.com/bradautomates/claude-video) by
-Bradley Bonanno (MIT). They're maintained independently here now, not kept in
-sync with upstream.
+- [bradautomates/claude-video](https://github.com/bradautomates/claude-video) by Bradley Bonanno (MIT).
 
-MIT licensed. See [LICENSE](LICENSE).
