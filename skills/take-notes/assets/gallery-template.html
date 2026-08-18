@@ -1,0 +1,277 @@
+<!doctype html>
+<html lang="{{LANG}}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{TITLE}}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,700&family=Newsreader:opsz,wght@6..72,400&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* ---------------------------------------------------------------------------
+   The catalogue — one drawer of index cards, one card per note. Same
+   paper/ink/pen tokens and typefaces as the note templates so the archive and
+   its pages read as one object; the composition is deliberately the opposite
+   of a note (grid of small cards, no rail, no measure) so you always know
+   which of the two you are looking at.
+   --------------------------------------------------------------------------- */
+:root {
+  --paper:   #f7f3ea;
+  --surface: #f1ebdf;
+  --raised:  #e8e1d1;
+  --rule:    #d8d0be;
+  --ink:     #191511;
+  --ink-70:  #57503f;
+  --ink-45:  #6e6653;   /* AA on --paper at label sizes; do not lighten */
+  --pen:     #ab2f19;
+  --card:    17rem;
+  --shelf:   84rem;
+  --grain:   .04;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --paper:   #17150f;
+    --surface: #1e1b15;
+    --raised:  #262218;
+    --rule:    #38332a;
+    --ink:     #efe8d8;
+    --ink-70:  #b3aa94;
+    --ink-45:  #8d8471;
+    --pen:     #f0765a;
+    --grain:   .07;
+  }
+}
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font: 400 1rem/1.6 Newsreader, "Iowan Old Style", Georgia, serif;
+  font-optical-sizing: auto;
+  -webkit-font-smoothing: antialiased;
+}
+body::after {
+  content: ""; position: fixed; inset: 0; z-index: 9; pointer-events: none;
+  opacity: var(--grain);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='4'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+.shelf { max-width: var(--shelf); margin-inline: auto; padding: 0 2.5rem 5rem; }
+
+/* --- Masthead ------------------------------------------------------------- */
+header {
+  display: flex; align-items: baseline; gap: 1.25rem; flex-wrap: wrap;
+  padding: 3.5rem 0 1.15rem;
+  border-bottom: 2px solid var(--ink);
+}
+.wordmark {
+  font: 700 1.9rem/1 Fraunces, "Iowan Old Style", Georgia, serif;
+  font-variation-settings: "SOFT" 40, "WONK" 1;
+  letter-spacing: -.02em; margin: 0;
+}
+.wordmark em { font-style: normal; color: var(--pen); }
+.tally {
+  margin: 0 0 0 auto;
+  font: 400 .72rem/1.6 "JetBrains Mono", ui-monospace, monospace;
+  color: var(--ink-70); font-variant-numeric: tabular-nums;
+}
+
+/* Filter: a ruled line to write on, not a chrome input. */
+.filterbar {
+  position: sticky; top: 0; z-index: 8;
+  display: flex; align-items: baseline; gap: .75rem;
+  padding: .85rem 0 .8rem;
+  background: color-mix(in srgb, var(--paper) 92%, transparent);
+  backdrop-filter: blur(14px) saturate(1.3);
+  border-bottom: 1px solid var(--rule);
+}
+.filterbar::before {
+  content: "/"; color: var(--pen);
+  font: 500 .8rem/1 "JetBrains Mono", ui-monospace, monospace;
+}
+#q {
+  flex: 1; min-width: 0;
+  border: 0; background: none; color: var(--ink);
+  font: 400 .82rem/1.6 "JetBrains Mono", ui-monospace, monospace;
+  padding: 0;
+}
+#q::placeholder { color: var(--ink-45); }
+#q:focus { outline: none; }
+#q:focus::placeholder { color: transparent; }
+.hits {
+  font: 400 .68rem/1.6 "JetBrains Mono", ui-monospace, monospace;
+  color: var(--ink-45); font-variant-numeric: tabular-nums;
+  opacity: 0; transition: opacity .2s ease;
+}
+.filterbar.is-filtering .hits { opacity: 1; }
+
+/* --- Cards ---------------------------------------------------------------- */
+.drawer {
+  display: grid; gap: 1.4rem;
+  grid-template-columns: repeat(auto-fill, minmax(var(--card), 1fr));
+  padding: 2rem 0 0;
+}
+
+.card {
+  display: flex; flex-direction: column;
+  background: var(--surface); color: inherit; text-decoration: none;
+  border: 1px solid var(--rule);
+  transition: border-color .2s ease, transform .2s ease, background .2s ease;
+}
+.card:hover, .card:focus-visible {
+  border-color: var(--pen); transform: translateY(-3px);
+  background: var(--raised); outline: none;
+}
+.card[hidden] { display: none; }
+
+/* Posters are pulled toward the paper so a wall of YouTube thumbnails does not
+   overpower the type; hovering returns the real colour. */
+.plate {
+  display: block; position: relative; aspect-ratio: 16 / 9;
+  background: var(--raised); border-bottom: 1px solid var(--rule); overflow: hidden;
+}
+.plate img {
+  display: block; width: 100%; height: 100%; object-fit: cover;
+  filter: saturate(.62) sepia(.14) contrast(.96);
+  transition: filter .25s ease, transform .4s ease;
+}
+.card:hover .plate img { filter: none; transform: scale(1.03); }
+
+/* Articles have no poster: the plate becomes the filing card's own face. */
+.plate.is-blank { display: grid; align-content: end; padding: 1.15rem 1.15rem 1rem; }
+.plate.is-blank .mark {
+  font: 700 2.9rem/1 Fraunces, Georgia, serif;
+  font-variation-settings: "SOFT" 0, "WONK" 1;
+  color: var(--pen); font-variant-numeric: tabular-nums; letter-spacing: -.03em;
+  opacity: .8;
+}
+
+.card .body { display: block; padding: .95rem 1.1rem 1rem; flex: 1; }
+.card .kicker {
+  display: block; margin: 0 0 .4rem;
+  font: 500 .62rem/1.3 "JetBrains Mono", ui-monospace, monospace;
+  letter-spacing: .1em; text-transform: uppercase; color: var(--ink-45);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.card .title {
+  display: block; margin: 0 0 .5rem;
+  font: 700 1.02rem/1.28 Fraunces, "Iowan Old Style", Georgia, serif;
+  font-variation-settings: "SOFT" 40, "WONK" 1;
+  letter-spacing: -.01em; text-wrap: pretty;
+}
+.card:hover .title { color: var(--pen); }
+.card .excerpt {
+  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical;
+  overflow: hidden;
+  font-size: .87rem; line-height: 1.5; color: var(--ink-70);
+}
+.card .foot {
+  display: flex; justify-content: space-between; gap: .75rem;
+  padding: .55rem 1.1rem .65rem;
+  border-top: 1px solid var(--rule);
+  font: 400 .64rem/1.4 "JetBrains Mono", ui-monospace, monospace;
+  color: var(--ink-45); letter-spacing: .05em;
+  font-variant-numeric: tabular-nums;
+}
+.card .kind { text-transform: uppercase; color: var(--pen); }
+
+/* --- Empty states --------------------------------------------------------- */
+.blank {
+  padding: 4rem 0; text-align: center; color: var(--ink-70);
+  font: 400 .82rem/1.7 "JetBrains Mono", ui-monospace, monospace;
+}
+#nomatch { display: none; }
+.drawer.is-empty + #nomatch { display: block; }
+
+footer {
+  padding: 2.5rem 0 0; margin-top: 3rem; border-top: 1px solid var(--rule);
+  font: 400 .68rem/1.7 "JetBrains Mono", ui-monospace, monospace;
+  color: var(--ink-45); word-break: break-all;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .card { animation: rise .5s cubic-bezier(.22,.61,.36,1) backwards; }
+  .card:nth-child(1) { animation-delay: .02s; }
+  .card:nth-child(2) { animation-delay: .05s; }
+  .card:nth-child(3) { animation-delay: .08s; }
+  .card:nth-child(4) { animation-delay: .11s; }
+  .card:nth-child(n+5) { animation-delay: .14s; }
+}
+@keyframes rise { from { opacity: 0; transform: translateY(10px); } }
+
+@media (max-width: 700px) {
+  :root { --card: 100%; }
+  .shelf { padding: 0 1.25rem 3rem; }
+  header { padding-top: 2.25rem; }
+  .tally { margin-left: 0; width: 100%; }
+}
+
+@media print {
+  :root { --paper: #fff; --surface: #fff; --raised: #f4f4f4; --ink: #000; --pen: #000; --rule: #bbb; }
+  body::after, .filterbar { display: none; }
+  .card { break-inside: avoid; }
+}
+</style>
+</head>
+<body>
+<div class="shelf">
+  <header>
+    <h1 class="wordmark">take<em>&middot;</em>notes</h1>
+    <p class="tally">{{TALLY}}</p>
+  </header>
+
+  <div class="filterbar" id="filterbar">
+    <input id="q" type="search" placeholder="{{PLACEHOLDER}}" autocomplete="off" spellcheck="false" aria-label="{{PLACEHOLDER}}">
+    <span class="hits" id="hits"></span>
+  </div>
+
+  <main class="drawer" id="drawer">
+{{CARDS}}
+  </main>
+  <p class="blank" id="nomatch">{{NOMATCH}}</p>
+
+  <footer>{{FOOTER}}</footer>
+</div>
+
+<script>
+(function () {
+  'use strict';
+  // Progressive enhancement: with JS off every card is still listed and links
+  // to its note. The only thing lost is the filter.
+  var q = document.getElementById('q');
+  var drawer = document.getElementById('drawer');
+  var bar = document.getElementById('filterbar');
+  var hits = document.getElementById('hits');
+  if (!q || !drawer) return;
+
+  var cards = Array.prototype.slice.call(drawer.querySelectorAll('.card'));
+
+  function fold(s) {
+    return s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  }
+
+  function apply() {
+    var needle = fold(q.value.trim());
+    var shown = 0;
+    cards.forEach(function (card) {
+      var match = !needle || card.dataset.search.indexOf(needle) !== -1;
+      card.hidden = !match;
+      if (match) shown++;
+    });
+    bar.classList.toggle('is-filtering', needle.length > 0);
+    drawer.classList.toggle('is-empty', shown === 0);
+    hits.textContent = shown + '/' + cards.length;
+  }
+
+  q.addEventListener('input', apply);
+  // "/" focuses the filter, Escape clears it — the two keys a list this size wants.
+  document.addEventListener('keydown', function (e) {
+    if (e.key === '/' && document.activeElement !== q) { e.preventDefault(); q.focus(); }
+    else if (e.key === 'Escape' && document.activeElement === q) { q.value = ''; apply(); q.blur(); }
+  });
+  apply();
+})();
+</script>
+</body>
+</html>

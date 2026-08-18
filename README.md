@@ -8,17 +8,38 @@ browser.
 Works in **Claude Code, Codex, Cursor, OpenCode, and Gemini CLI** — one
 `SKILL.md`, no per-tool variants.
 
+Supported sources:
+
+- **YouTube** — any video URL, including ones yt-dlp supports beyond YouTube
+- **Local media files** — video/audio already on disk
+- **Web articles** — blog posts, docs pages, news articles (any other `http(s)` page)
+
 <table>
+
 <tr>
+
 <td align="center" width="50%">
-<a href="docs/video-note.png"><img src="docs/video-note.png" width="380" alt="Video note — rail with poster, timestamped index, and scroll-spy sections"></a>
+
+<a href="docs/video-note.png"><img src="docs/video-note.png" width="380" alt="Video note — rail with poster, timestamped index, and scroll-spy sections">
+
+</a>
+
 <br><sub><b>Video note</b> — poster, timestamped index, scroll-spy</sub>
+
 </td>
+
 <td align="center" width="50%">
-<a href="docs/article-note.png"><img src="docs/article-note.png" width="380" alt="Article note — rail with byline kicker, numbered index, and scroll-spy sections"></a>
+
+<a href="docs/article-note.png"><img src="docs/article-note.png" width="380" alt="Article note — rail with byline kicker, numbered index, and scroll-spy sections">
+
+</a>
+
 <br><sub><b>Article note</b> — byline kicker, numbered index, scroll-spy</sub>
+
 </td>
+
 </tr>
+
 </table>
 
 Click either thumbnail for the full-size page. Both real output — the skill
@@ -26,48 +47,49 @@ run end to end on an actual video and an actual blog post, not mockups.
 
 ## Install
 
-Clone and symlink the skill folder into whichever directory your tool reads,
-so `SKILL.md` sits one level deep:
+Two ways in. Neither auto-updates — re-run it (or `git pull`) for the latest.
+
+### Option A — clone + symlink, for tinkering
 
 ```sh
-git clone https://github.com/davertor/take-notes ~/take-notes-src
-ln -s ~/take-notes-src/skills/take-notes ~/.claude/skills/take-notes
+git clone https://github.com/davertor/take-notes
+cd take-notes
+./link-skill.sh              # every tool
+AGENT=claude ./link-skill.sh # one tool only
 ```
 
-Other valid targets: `~/.codex/skills/`, `~/.cursor/skills/`,
-`~/.config/opencode/skills/`, `~/.gemini/skills/`, `~/.agents/skills/`.
+[`link-skill.sh`](link-skill.sh) symlinks `skills/take-notes` into each
+tool's skills directory (`claude`, `codex`, `cursor`, `opencode`, `gemini`,
+`agents`). Idempotent, and replaces anything already occupying a target. A
+real checkout — edit `skills/take-notes/` directly, or `git pull` for
+upstream changes.
 
-### Alternative: the skills CLI
-
-[`npx skills`](https://github.com/vercel-labs/skills) works out which agent
-directories you have and links the skill into all of them:
+### Option B — the skills CLI
 
 ```sh
-npx skills add davertor/take-notes -g              # install for your user
-npx skills add davertor/take-notes -l              # preview before installing
+npx skills add davertor/take-notes -g                  # install for your user
 npx skills add davertor/take-notes -g -a claude-code   # one agent only
-npx skills add davertor/take-notes -g -y           # non-interactive
 ```
 
-**Pass `-g`.** Without it `add` installs *project-level*, creating agent skill
-directories (`.agents/skills/`, `.claude/`, …) inside the current folder — fine
-for pinning a skill to one repo, surprising if you wanted it everywhere. Bare
-`add` prompts for the scope; `-y` skips the prompt and auto-detects, which
-resolves to project-level whenever you are inside a project.
+**Pass `-g`** — without it, `add` installs project-level into the current
+folder instead of your user directories. Update with `npx skills update take-notes`.
+
+### What you'll need
+
+
+|                                      |                                                                                               |
+| ------------------------------------ | --------------------------------------------------------------------------------------------- |
+| [**uv**](https://docs.astral.sh/uv/) | runs the scripts; provisions its own Python, no separate install                              |
+| **yt-dlp + ffmpeg**                  | video sources only — `scripts/setup.py` installs them via Homebrew on macOS                   |
+| **Whisper API key**                  | optional, only for videos without captions — Groq or OpenAI, read from `~/.config/watch/.env` |
+
+
+Web articles need none of the above — that path uses the agent's fetch tool.
 
 Invoke with `/take-notes <url> [focus] [--lang en|es]`. The optional focus
 narrows what the notes emphasise (e.g. `"just the API design part"`), and
-`--lang` overrides the configured language for one run.
-
-## Requirements
-
-| | |
-|---|---|
-| **[uv](https://docs.astral.sh/uv/)** | runs the scripts; provisions its own Python, no separate install |
-| **yt-dlp + ffmpeg** | video sources only — `scripts/setup.py` installs them via Homebrew on macOS |
-| **Whisper API key** | optional, only for videos without captions — Groq or OpenAI, read from `~/.config/watch/.env` |
-
-Web articles need none of the above — that path uses the agent's fetch tool.
+`--lang` overrides the configured language for one run. Both install paths
+land on the same `/take-notes` — neither namespaces or renames it.
 
 ## Config
 
@@ -128,10 +150,5 @@ instead of duplicating it.
 
 ## Credits
 
-`scripts/config.py`, `download.py`, `transcribe.py`, `whisper.py` and
-`setup.py` originated from
-[bradautomates/claude-video](https://github.com/bradautomates/claude-video) by
-Bradley Bonanno (MIT). They're maintained independently here now, not kept in
-sync with upstream.
+- [bradautomates/claude-video](https://github.com/bradautomates/claude-video) by Bradley Bonanno (MIT).
 
-MIT licensed. See [LICENSE](LICENSE).
