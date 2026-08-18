@@ -1,6 +1,16 @@
 ---
 name: take-notes
 description: Turn a YouTube video or a web article into didactic study notes, written as a self-contained HTML page under ~/take-notes/html_reports and opened in the browser.
+license: MIT
+compatibility: Requires uv. Video sources also need yt-dlp and ffmpeg, plus network access; an optional Groq or OpenAI key enables Whisper for videos without captions.
+metadata:
+  author: davertor
+  version: "1.0.0"
+# Claude Code extensions below — not in the agentskills.io spec, and read at the
+# top level rather than under `metadata`, which is where Claude Code looks.
+# `allowed-tools` stays comma-separated: the spec asks for spaces but marks the
+# field experimental ("support may vary"), and commas are what Claude Code
+# parses today. Do not "correct" either without testing in Claude Code first.
 argument-hint: "<video-or-article-url> [focus or question]"
 allowed-tools: Bash, Read, WebFetch, AskUserQuestion
 disable-model-invocation: true

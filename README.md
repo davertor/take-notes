@@ -10,12 +10,8 @@ Works in **Claude Code, Codex, Cursor, OpenCode, and Gemini CLI** — one
 
 ## Install
 
-```sh
-npx skills add davertor/take-notes
-```
-
-Or clone and symlink the skill folder into whichever directory your tool
-reads, so `SKILL.md` sits one level deep:
+Clone and symlink the skill folder into whichever directory your tool reads,
+so `SKILL.md` sits one level deep:
 
 ```sh
 git clone https://github.com/davertor/take-notes ~/take-notes-src
@@ -24,6 +20,20 @@ ln -s ~/take-notes-src/skills/take-notes ~/.claude/skills/take-notes
 
 Other valid targets: `~/.codex/skills/`, `~/.cursor/skills/`,
 `~/.config/opencode/skills/`, `~/.gemini/skills/`, `~/.agents/skills/`.
+
+### Alternative: the skills CLI
+
+[`npx skills`](https://github.com/vercel-labs/skills) installs into the right
+directory for whichever agents you have, without the symlink:
+
+```sh
+npx skills add davertor/take-notes                 # install
+npx skills add davertor/take-notes --list          # preview before installing
+npx skills add davertor/take-notes -a claude-code  # target one agent
+npx skills add davertor/take-notes -y              # non-interactive / CI
+```
+
+Unlike the symlink, this copies the skill — re-run `add` to pick up updates.
 
 Invoke with `/take-notes <url> [focus]`. The optional focus narrows what the
 notes emphasise (e.g. `"just the API design part"`).
@@ -57,6 +67,10 @@ becomes English notes without a word.
 
 ## Layout
 
+Follows the [Agent Skills](https://agentskills.io/specification) layout —
+`scripts/` for executable code, `references/` for docs loaded on demand,
+`assets/` for templates.
+
 ```
 skills/take-notes/
   SKILL.md             route by source, and the note-writing standard
@@ -67,6 +81,8 @@ skills/take-notes/
     transcript.py         transcript entry point (captions -> Whisper)
     render.py              wraps note HTML in a styled standalone page
     ...                    transcript helpers (see Credits)
+  assets/
+    template.html         the two-pane video note layout
 ```
 
 Both reference guides hand back the same five fields (title, byline, span,
