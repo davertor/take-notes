@@ -1,70 +1,85 @@
 # take-notes
 
-An agent skill that turns a **YouTube video or a web article** into didactic
-study notes — executive summary, the one takeaway, key points, a timestamped or
-sectioned outline — written as a self-contained HTML page under `~/take-notes/`
-and opened in the browser.
+Turns a **YouTube video or web article** into didactic study notes — executive
+summary, the one takeaway, key points, a timestamped or sectioned outline — as
+a self-contained HTML page under `~/take-notes/html_reports/`, opened in the
+browser.
 
-Not a transcript dump and not a one-paragraph summary. The notes are written to
-teach: a bullet only someone who already watched the video would understand has
-failed the standard.
-
-Works in **Claude Code, Codex, Cursor, OpenCode and Gemini CLI** — one `SKILL.md`,
-no per-tool variants.
+Works in **Claude Code, Codex, Cursor, OpenCode, and Gemini CLI** — one
+`SKILL.md`, no per-tool variants.
 
 ## Install
 
-Clone into whichever skills directory your tool reads, so `SKILL.md` sits one
-level deep:
-
 ```sh
-git clone https://github.com/davertor/take-notes ~/.claude/skills/take-notes
+npx skills add davertor/take-notes
 ```
 
-Other valid roots: `~/.codex/skills/`, `~/.cursor/skills/`,
+Or clone and symlink the skill folder into whichever directory your tool
+reads, so `SKILL.md` sits one level deep:
+
+```sh
+git clone https://github.com/davertor/take-notes ~/take-notes-src
+ln -s ~/take-notes-src/skills/take-notes ~/.claude/skills/take-notes
+```
+
+Other valid targets: `~/.codex/skills/`, `~/.cursor/skills/`,
 `~/.config/opencode/skills/`, `~/.gemini/skills/`, `~/.agents/skills/`.
 
-Then invoke it: `/take-notes <url> [focus]`. The optional focus narrows what the
-notes emphasise (`"just the API design part"`).
+Invoke with `/take-notes <url> [focus]`. The optional focus narrows what the
+notes emphasise (e.g. `"just the API design part"`).
 
 ## Requirements
 
 | | |
 |---|---|
-| **Python 3** | stdlib only — no `pip install`, no Markdown parser, no template engine |
-| **yt-dlp + ffmpeg** | video sources only; `scripts/setup.py` installs them via Homebrew on macOS and prints the commands elsewhere |
-| **Whisper API key** | *optional*. Only needed for videos with no captions. Groq (preferred, cheaper) or OpenAI, read from `~/.config/watch/.env` |
+| **[uv](https://docs.astral.sh/uv/)** | runs the scripts; provisions its own Python, no separate install |
+| **yt-dlp + ffmpeg** | video sources only — `scripts/setup.py` installs them via Homebrew on macOS |
+| **Whisper API key** | optional, only for videos without captions — Groq or OpenAI, read from `~/.config/watch/.env` |
 
-Web articles need none of the above — that path uses the agent's own fetch tool.
+Web articles need none of the above — that path uses the agent's fetch tool.
 
-## How it works
+## Config
 
-```
-SKILL.md              route by source, and the note-writing standard
-references/
-  youtube.md          captions via yt-dlp, Whisper fallback
-  web.md              fetch + extract article text
-scripts/
-  transcript.py       transcript entry point (captions -> Whisper)
-  render.py           wraps note HTML in a styled standalone page
-  ...                 vendored transcript helpers
+Optional — notes are written in **English** unless you say otherwise.
+
+```jsonc
+// ~/take-notes/config.json
+{ "language": "es" }   // "en" (default) | "es" | "ask"
 ```
 
-Only acquisition differs per source. Both guides hand back the same five fields
-— title, byline, span, canonical URL, body — and the note-writing standard lives
-in `SKILL.md` alone so it can't drift into per-source copies.
+`"ask"` restores the per-run prompt, offering the source's own language first.
 
-The skill emits body HTML directly and `render.py` wraps it. Nothing parses
-Markdown, which is why the whole thing stays stdlib-only.
+Precedence is invocation → config → English: naming a language in the request
+("take notes on this in English") wins for that run, and a missing or malformed
+file falls back to English rather than failing. When the source's language
+differs from the one used, the skill says so, so a Spanish video never quietly
+becomes English notes without a word.
 
-Re-running on the same source the same day **updates** that note instead of
-adding a near-duplicate.
+## Layout
+
+```
+skills/take-notes/
+  SKILL.md             route by source, and the note-writing standard
+  references/
+    youtube.md          captions via yt-dlp, Whisper fallback
+    web.md                fetch + extract article text
+  scripts/
+    transcript.py         transcript entry point (captions -> Whisper)
+    render.py              wraps note HTML in a styled standalone page
+    ...                    transcript helpers (see Credits)
+```
+
+Both reference guides hand back the same five fields (title, byline, span,
+canonical URL, body); `SKILL.md` holds the only copy of the note-writing
+standard. Re-running on the same source the same day updates that note
+instead of duplicating it.
 
 ## Credits
 
-`scripts/config.py`, `download.py`, `transcribe.py`, `whisper.py` and `setup.py`
-are copied verbatim from [bradautomates/claude-video](https://github.com/bradautomates/claude-video)
-(MIT) so this skill runs standalone. They are kept byte-identical to upstream on
-purpose — see [`scripts/VENDORED.md`](scripts/VENDORED.md) for the drift check.
+`scripts/config.py`, `download.py`, `transcribe.py`, `whisper.py` and
+`setup.py` originated from
+[bradautomates/claude-video](https://github.com/bradautomates/claude-video) by
+Bradley Bonanno (MIT). They're maintained independently here now, not kept in
+sync with upstream.
 
 MIT licensed. See [LICENSE](LICENSE).

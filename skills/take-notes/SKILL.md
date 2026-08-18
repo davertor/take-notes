@@ -1,6 +1,6 @@
 ---
 name: take-notes
-description: Turn a YouTube video or a web article into didactic study notes, written as a self-contained HTML page under ~/take-notes and opened in the browser.
+description: Turn a YouTube video or a web article into didactic study notes, written as a self-contained HTML page under ~/take-notes/html_reports and opened in the browser.
 argument-hint: "<video-or-article-url> [focus or question]"
 allowed-tools: Bash, Read, WebFetch, AskUserQuestion
 disable-model-invocation: true
@@ -10,8 +10,8 @@ disable-model-invocation: true
 
 Turn a source into **notes you can learn from** — not a transcript dump, not a
 one-paragraph summary. The output is one self-contained HTML page written to
-`~/take-notes/` and opened in the browser, so the notes accumulate into a
-browsable local archive instead of scrolling away in the terminal.
+`~/take-notes/html_reports/` and opened in the browser, so the notes accumulate
+into a browsable local archive instead of scrolling away in the terminal.
 
 Invocation: `/take-notes <url> [focus]`. If no URL is given, ask for one.
 The optional focus narrows what the notes emphasise ("just the API design part").
@@ -31,9 +31,6 @@ if [ ! -f "$SKILL_DIR/scripts/render.py" ]; then
 fi
 ```
 
-On **Windows**, substitute `python` for `python3` — the `python3` command there is
-the Microsoft Store stub and will not run the scripts.
-
 ## Step 1 — route to the right acquisition guide
 
 Pick **one** reference by looking at the source, Read it, and follow it. Only the
@@ -52,24 +49,59 @@ Each guide hands back the same thing, and nothing more:
 - **canonical URL** (plus the YouTube video ID when there is one)
 - **body** — the timestamped transcript, or the article text
 
+Video sources also hand back, when yt-dlp reports them: **channel URL**,
+**published** date, **views**, a **thumbnail** URL, and the **caption language**.
+Pass these to Step 5 too — they drive the two-pane video layout. Articles never
+have them; leave those flags off entirely rather than passing empty strings.
+
+Captions arrive in the language actually spoken. When the guide reports the track
+was **machine-translated** (no original-language track existed), note it in
+*Going deeper*: translated captions mangle proper nouns, so names taken from them
+are unreliable and quotes are twice-removed from what was said.
+
 If a guide reports it could not get the body, **say so and stop**. Never write
 notes from a title, a description, or a paywall stub.
 
 Do not put note-writing guidance in the reference files, and do not put
 acquisition detail here. Two copies of the writing standard will drift.
 
-## Step 2 — ask which language to write the notes in
+## Step 2 — settle the language
+
+This skill writes in **English or Spanish only**. Resolve which, in this order,
+and stop at the first that applies:
+
+1. **The invocation.** The user named a language for this run ("take notes on
+   this in English") — use it.
+2. **`~/take-notes/config.json`.** Read it. `"language": "en"` or `"es"` → use
+   it. `"language": "ask"` → go to the question below.
+3. **Default: English.** No config, an unreadable one, or any other value — a
+   broken config must never block the run.
+
+```json
+{ "language": "es" }
+```
+
+When you resolve to a language **without asking**, say so in one short line, and
+name the config file so it is discoverable and correctable:
+
+> Writing in English (default). Set `"language"` in `~/take-notes/config.json` to change.
+
+**If the source is not in the language you resolved to, say that too** — a
+Spanish video silently producing English notes is the one surprise worth calling
+out:
+
+> Source is in Spanish; writing in English per your config.
+
+### When the config says `"ask"`
 
 Ask once, with `AskUserQuestion`, before writing anything. Offer exactly two
-options — English and Spanish — nothing else; this skill only writes in one of
-these two. Put the source's own language first, labelled "(Recommended)" (e.g.
-a Spanish-language video → `Spanish (Recommended)` before `English`); if the
-source is in neither language, put English first. Always ask, even when the
-source and the conversation are already in the same language — this is an
-explicit choice, not an inference.
+options — English and Spanish — nothing else. Put the source's own language
+first, labelled "(Recommended)" (e.g. a Spanish-language video →
+`Spanish (Recommended)` before `English`); if the source is in neither, put
+English first.
 
-The answer sets the language for Step 4's headings and prose, and the `--lang`
-code for Step 5 (`en` or `es`).
+However it resolves, the result sets the language for Step 4's headings and
+prose, and the `--lang` code for Step 5 (`en` or `es`).
 
 ## Step 3 — read for teaching, not for summarising
 
@@ -92,7 +124,7 @@ which is why this skill needs no conversion dependency.
 Pipe the body HTML to the renderer, filling the flags from your Step 1 fields:
 
 ```bash
-python3 "${SKILL_DIR}/scripts/render.py" \
+uv run "${SKILL_DIR}/scripts/render.py" \
   --title "<title>" --byline "<channel or author>" \
   --span "<duration or publication date>" --url "<canonical URL>" <<'HTML'
 <h2>Executive summary</h2>
@@ -100,12 +132,25 @@ python3 "${SKILL_DIR}/scripts/render.py" \
 HTML
 ```
 
-It writes `~/take-notes/YYYY-MM-DD-<slug>.html` and opens it. Re-running on the
-same source the same day **updates** that file rather than adding a near-duplicate;
-the script prints `created:` or `updated:` with the path. Report that path.
+For video sources, also pass whichever of `--video-id <id>`, `--thumbnail <url>`,
+`--channel-url <url>`, `--published <YYYYMMDD>`, `--views <int>`,
+`--duration <seconds>` the guide reported. `--video-id` is what switches the output to the two-pane video layout
+(rail with poster + index, scroll-spy nav over the sections) — omit it entirely
+for articles, which keep the single-column layout.
+
+For videos, pass **raw** values and let the renderer localise them:
+`--duration 692` (seconds), `--published 20260816`, `--views 13232`. It writes
+`11 min · 16 ago 2026 · 13.2K visualizaciones` for `--lang es` and
+`11 min · Aug 16, 2026 · 13.2K views` for `--lang en`. `--span` stays a free-form
+string for articles, whose span is a publication date rather than a length.
+
+It writes `~/take-notes/html_reports/YYYY-MM-DD-<slug>.html` and opens it.
+Re-running on the same source the same day **updates** that file rather than
+adding a near-duplicate; the script prints `created:` or `updated:` with the
+path. Report that path.
 
 Pass `--lang` matching Step 2's choice (`en` or `es`). Add `--no-open` to skip
-the browser, `--out-dir` to write somewhere other than `~/take-notes`.
+the browser, `--out-dir` to write somewhere other than `~/take-notes/html_reports`.
 
 ## Sections
 
@@ -167,10 +212,9 @@ Optional — include only when the source actually earns it, never as an empty h
 ## Related
 
 - `/yt-watch` — frames *and* transcript. Use it directly when the question is visual.
-  `/take-notes` vendors a byte-identical copy of its transcript path (see
-  `scripts/VENDORED.md`) so it runs standalone; neither skill depends on the other
-  being installed.
+  `/take-notes` includes its own copy of the transcript path so it runs standalone;
+  neither skill depends on the other being installed.
 - `/notion-summarize-blog` — files a short *webpage* summary straight into the
   personal Notion database via MCP. `/take-notes` is the long form and stays local:
-  a full study page in `~/take-notes/`, reviewed and edited before anything is
-  worth filing.
+  a full study page in `~/take-notes/html_reports/`, reviewed and edited before
+  anything is worth filing.
