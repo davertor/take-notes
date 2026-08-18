@@ -23,15 +23,13 @@ from pathlib import Path
 
 DEFAULT_OUT_DIR = Path.home() / "take-notes" / "html_reports"
 TEMPLATE_PATH = Path(__file__).resolve().parent.parent / "assets" / "template.html"
+ARTICLE_TEMPLATE_PATH = Path(__file__).resolve().parent.parent / "assets" / "article-template.html"
 
 # The only two languages Step 2 ever offers (see SKILL.md). Whole sentences,
 # not word-by-word substitution: concatenating translated fragments breaks
-# grammar across languages with different word order.
-FOOTER_SENTENCE = {
-    "en": "Notes generated from {link} on {today}.",
-    "es": "Notas generadas a partir de {link} el {today}.",
-}
-VIDEO_FOOTER_SENTENCE = {
+# grammar across languages with different word order. Shared by both rail
+# templates (video and article) — the phrasing isn't video-specific.
+RAIL_FOOTER_SENTENCE = {
     "en": "Noted from {link} &middot; {today}",
     "es": "Notas de {link} &middot; {today}",
 }
@@ -48,6 +46,8 @@ MONTHS = {
 DATE_ORDER = {"en": "{mon} {day}, {year}", "es": "{day} {mon} {year}"}
 VIEWS_LABEL = {"en": "{n} views", "es": "{n} visualizaciones"}
 MINUTES_LABEL = {"en": "{n} min", "es": "{n} min"}
+READING_LABEL = {"en": "{n} min read", "es": "{n} min de lectura"}
+WORDS_PER_MINUTE = 220
 
 
 def format_date(raw: str | None, lang: str) -> str | None:
@@ -102,99 +102,28 @@ def format_duration(seconds: int | str | None, lang: str) -> str | None:
     return MINUTES_LABEL.get(lang, MINUTES_LABEL["en"]).format(n=max(1, minutes))
 
 
-def footer_html(lang: str, url: str | None, today: str) -> str:
+def format_reading_time(word_count: int, lang: str) -> str | None:
+    """Word count to a reading-length phrase: 1300 -> '6 min read'.
+
+    Rounds up, unlike format_duration's floor: a stated video length is exact,
+    but a reading estimate is a ceiling on how long the article might take.
+    """
+    if not word_count or word_count <= 0:
+        return None
+    minutes = max(1, -(-word_count // WORDS_PER_MINUTE))  # ceil division
+    return READING_LABEL.get(lang, READING_LABEL["en"]).format(n=minutes)
+
+
+def _word_count(body_html: str) -> int:
+    """Rough word count of rendered body HTML, tags and entities stripped."""
+    text = html.unescape(re.sub(r"<[^>]+>", " ", body_html))
+    return len(text.split())
+
+
+def rail_footer_html(lang: str, url: str | None, today: str) -> str:
     safe_url = html.escape(url or "", quote=True)
     link = f'<a href="{safe_url}">{safe_url}</a>'
-    return FOOTER_SENTENCE.get(lang, FOOTER_SENTENCE["en"]).format(link=link, today=today)
-
-
-def video_footer_html(lang: str, url: str | None, today: str) -> str:
-    safe_url = html.escape(url or "", quote=True)
-    link = f'<a href="{safe_url}">{safe_url}</a>'
-    return VIDEO_FOOTER_SENTENCE.get(lang, VIDEO_FOOTER_SENTENCE["en"]).format(link=link, today=today)
-
-STYLE = """
-:root {
-  --bg: #fdfdfc; --fg: #1c1b19; --muted: #6b6862;
-  --rule: #e3e0da; --accent: #8a5a2b; --code-bg: #f4f2ee;
-}
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #161513; --fg: #e8e5df; --muted: #9b968d;
-    --rule: #2e2c28; --accent: #d0a06a; --code-bg: #211f1c;
-  }
-}
-* { box-sizing: border-box; }
-body {
-  margin: 0; padding: 3rem 1.25rem 6rem;
-  background: var(--bg); color: var(--fg);
-  font: 17px/1.65 ui-serif, Georgia, "Iowan Old Style", serif;
-}
-main { max-width: 42rem; margin: 0 auto; }
-h1 { font-size: 1.9rem; line-height: 1.2; margin: 0 0 .4rem; letter-spacing: -.01em; }
-h2 {
-  font-size: 1.15rem; margin: 2.4rem 0 .7rem; padding-top: .9rem;
-  border-top: 1px solid var(--rule); letter-spacing: .02em; text-transform: uppercase;
-  font-family: ui-sans-serif, system-ui, sans-serif; color: var(--muted);
-}
-h3 { font-size: 1.02rem; margin: 1.5rem 0 .4rem; }
-.meta {
-  font-family: ui-sans-serif, system-ui, sans-serif;
-  font-size: .82rem; color: var(--muted); margin: 0 0 2rem;
-}
-.meta a { color: inherit; }
-p, li { margin: .6rem 0; }
-ul, ol { padding-left: 1.3rem; }
-li::marker { color: var(--accent); }
-a { color: var(--accent); text-decoration-thickness: 1px; text-underline-offset: 2px; }
-strong { font-weight: 650; }
-code {
-  font: .87em ui-monospace, SFMono-Regular, Menlo, monospace;
-  background: var(--code-bg); padding: .12em .35em; border-radius: 3px;
-}
-pre {
-  background: var(--code-bg); padding: .9rem 1rem; border-radius: 6px;
-  overflow-x: auto; font-size: .87rem; line-height: 1.5;
-}
-pre code { background: none; padding: 0; }
-blockquote {
-  margin: 1rem 0; padding-left: 1rem;
-  border-left: 3px solid var(--rule); color: var(--muted);
-}
-table { border-collapse: collapse; width: 100%; font-size: .93rem; margin: 1rem 0; }
-th, td { text-align: left; padding: .45rem .6rem; border-bottom: 1px solid var(--rule); }
-th { font-family: ui-sans-serif, system-ui, sans-serif; font-size: .8rem;
-     text-transform: uppercase; letter-spacing: .03em; color: var(--muted); }
-footer {
-  margin-top: 3.5rem; padding-top: 1rem; border-top: 1px solid var(--rule);
-  font-family: ui-sans-serif, system-ui, sans-serif;
-  font-size: .78rem; color: var(--muted);
-}
-@media print {
-  body { padding: 0; font-size: 11pt; }
-  h2 { break-after: avoid; }
-  footer { display: none; }
-}
-"""
-
-DOCUMENT = """<!doctype html>
-<html lang="{lang}">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>{title}</title>
-<style>{style}</style>
-</head>
-<body>
-<main>
-<h1>{title}</h1>
-<p class="meta">{meta}</p>
-{body}
-<footer>{footer}</footer>
-</main>
-</body>
-</html>
-"""
+    return RAIL_FOOTER_SENTENCE.get(lang, RAIL_FOOTER_SENTENCE["en"]).format(link=link, today=today)
 
 
 def slugify(title: str, maxlen: int = 60) -> str:
@@ -205,20 +134,12 @@ def slugify(title: str, maxlen: int = 60) -> str:
     return slug[:maxlen].strip("-") or "notes"
 
 
-def build_meta(byline: str | None, span: str | None, url: str | None) -> str:
-    """The masthead line: byline · span · linked host, skipping empty parts."""
-    parts: list[str] = []
-    if byline:
-        parts.append(html.escape(byline))
-    if span:
-        parts.append(html.escape(span))
-    if url:
-        safe = html.escape(url, quote=True)
-        parts.append(f'<a href="{safe}">{safe}</a>')
-    return " &middot; ".join(parts)
+def build_article_meta(span: str | None, reading_time: str | None) -> str:
+    """Article masthead: published · reading time. Byline lives in the kicker."""
+    return " &middot; ".join(html.escape(v) for v in (span, reading_time) if v)
 
 
-def build_document(
+def build_article_document(
     title: str,
     body: str,
     byline: str | None = None,
@@ -228,14 +149,24 @@ def build_document(
     today: str | None = None,
 ) -> str:
     today = today or datetime.date.today().isoformat()
-    return DOCUMENT.format(
-        lang=html.escape(lang, quote=True),
-        title=html.escape(title),
-        style=STYLE,
-        meta=build_meta(byline, span, url),
-        body=body.strip(),
-        footer=footer_html(lang, url, today),
-    )
+    strings = UI_STRINGS.get(lang, UI_STRINGS["en"])
+    reading_time = format_reading_time(_word_count(body), lang)
+    doc = ARTICLE_TEMPLATE_PATH.read_text(encoding="utf-8")
+    for token, value in {
+        "{{LANG}}": html.escape(lang, quote=True),
+        "{{TITLE}}": html.escape(title),
+        "{{BYLINE}}": html.escape(byline) if byline else "",
+        "{{URL}}": html.escape(url or "", quote=True),
+        "{{META}}": build_article_meta(span, reading_time),
+        "{{BODY}}": body.strip(),
+        "{{OPEN}}": html.escape(strings["open"]),
+        "{{FOOTER}}": rail_footer_html(lang, url, today),
+    }.items():
+        doc = doc.replace(token, value)
+    if "{{" in doc:
+        stray = doc[doc.index("{{"):doc.index("{{") + 30]
+        raise ValueError(f"unresolved article-template.html token near {stray!r}")
+    return doc
 
 
 def build_video_meta(
@@ -289,7 +220,7 @@ def build_video_document(
         "{{BODY}}": body.strip(),
         "{{WATCH}}": html.escape(strings["watch"]),
         "{{OPEN}}": html.escape(strings["open"]),
-        "{{FOOTER}}": video_footer_html(lang, url, today),
+        "{{FOOTER}}": rail_footer_html(lang, url, today),
     }.items():
         doc = doc.replace(token, value)
     if "{{" in doc:
@@ -305,31 +236,6 @@ def _selftest() -> int:
     assert slugify("") == "notes"
     assert len(slugify("x" * 200)) <= 60
     assert not slugify("a" + "-" * 80 + "b").endswith("-")
-
-    # Header fields are escaped; body HTML is passed through by design.
-    doc = build_document(
-        "5 > 3 & rising",
-        "<h2>Summary</h2><p>ok</p>",
-        byline="A & B",
-        url="https://x.test/?a=1&b=2",
-        today="2026-01-01",
-    )
-    assert "<title>5 &gt; 3 &amp; rising</title>" in doc
-    assert "A &amp; B" in doc
-    assert "a=1&amp;b=2" in doc
-    assert "<h2>Summary</h2><p>ok</p>" in doc
-    assert "<script" not in doc.lower()
-    assert "Notes generated from" in doc, "footer defaults to English"
-
-    doc_es = build_document(
-        "Título", "<p>ok</p>", url="https://x.test", lang="es", today="2026-01-01",
-    )
-    assert "Notas generadas a partir de" in doc_es, "footer localises to Spanish"
-    assert "Notes generated" not in doc_es, "no English leaking into the Spanish footer"
-
-    assert build_meta(None, None, None) == ""
-    assert build_meta("A", None, None) == "A"
-    assert "&middot;" in build_meta("A", "12:34", None)
 
     # Raw metadata localises rather than being pre-formatted by the caller.
     assert format_date("20251205", "en") == "Dec 5, 2025"
@@ -350,6 +256,17 @@ def _selftest() -> int:
     assert format_duration(3600, "en") == "1 h"
     assert format_duration(20, "en") == "1 min"        # never "0 min"
     assert format_duration(None, "en") is None
+
+    assert format_reading_time(1300, "en") == "6 min read"       # ceil(1300/220) = 6
+    assert format_reading_time(220, "en") == "1 min read"
+    assert format_reading_time(50, "en") == "1 min read"         # never "0 min read"
+    assert format_reading_time(1300, "es") == "6 min de lectura"
+    assert format_reading_time(0, "en") is None
+    assert format_reading_time(None, "en") is None
+
+    assert _word_count("<p>one <strong>two</strong></p><p>three</p>") == 3
+    assert _word_count("<p>a &amp; b</p>") == 3  # entity decodes before counting
+    assert _word_count("") == 0
 
     # Video path: no --thumbnail falls back to the YouTube thumbnail for
     # --video-id, header fields stay escaped, and the tab/rail scaffolding
@@ -387,6 +304,44 @@ def _selftest() -> int:
     assert "&middot;" in build_video_meta("A", None, "12:34", "Jan 1, 2026", "1K")
     assert '<a href="https://x.test">A</a>' in build_video_meta("A", "https://x.test", None, None, None)
     assert build_video_meta(None, None, None, None, None) == ""
+
+    # Article path: no --video-id, so this is what main() now dispatches to by
+    # default. Header fields stay escaped, no stray tokens, chrome localises,
+    # and the byline lives in the kicker rather than the meta line.
+    article_body = (
+        "<h2>Executive summary</h2><p>" + ("word " * 300) + "</p>"
+        "<h2>Section outline</h2><ul>"
+        "<li><a href=\"https://x.test#a\"><strong>First</strong></a> — one</li>"
+        "<li><strong>Second</strong> — two</li>"  # no anchor: page has no stable anchors
+        "</ul>"
+    )
+    article_doc = build_article_document(
+        "5 > 3 & rising", article_body,
+        byline="A & B", url="https://x.test/?a=1&b=2", today="2026-01-01",
+    )
+    assert "<title>5 &gt; 3 &amp; rising</title>" in article_doc
+    assert "A &amp; B" in article_doc  # the kicker
+    assert 'id="index"' in article_doc
+    assert 'id="spy"' in article_doc
+    assert "{{" not in article_doc
+    assert ">Open original <" in article_doc, "watch link defaults to English"
+    assert "Noted from" in article_doc, "footer defaults to English"
+    assert "2 min read" in article_doc  # ceil(300/220) = 2
+
+    article_doc_es = build_article_document(
+        "Título", "<h2>Resumen</h2><p>ok</p>",
+        byline="Sitio", url="https://x.test", lang="es", today="2026-01-01",
+    )
+    assert ">Ver original <" in article_doc_es, "watch link localises to Spanish"
+    assert "Notas de" in article_doc_es, "footer localises to Spanish"
+    assert "Open original" not in article_doc_es and "Noted from" not in article_doc_es, (
+        "no English chrome leaking into a Spanish note"
+    )
+    assert "{{" not in article_doc_es
+
+    assert build_article_meta(None, None) == ""
+    assert build_article_meta("Jan 1, 2026", None) == "Jan 1, 2026"
+    assert "&middot;" in build_article_meta("Jan 1, 2026", "6 min read")
 
     print("selftest: ok")
     return 0
@@ -444,7 +399,7 @@ def main() -> int:
             published=published, views=views, lang=args.lang,
         )
     else:
-        document = build_document(
+        document = build_article_document(
             args.title, body,
             byline=args.byline, span=args.span, url=args.url, lang=args.lang,
         )

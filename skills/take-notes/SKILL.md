@@ -156,9 +156,10 @@ HTML
 
 For video sources, also pass whichever of `--video-id <id>`, `--thumbnail <url>`,
 `--channel-url <url>`, `--published <YYYYMMDD>`, `--views <int>`,
-`--duration <seconds>` the guide reported. `--video-id` is what switches the output to the two-pane video layout
-(rail with poster + index, scroll-spy nav over the sections) — omit it entirely
-for articles, which keep the single-column layout.
+`--duration <seconds>` the guide reported. `--video-id` is what switches the
+rail to a poster + index; without it, the same two-pane layout renders for
+articles instead, with a byline kicker and a numbered index in place of the
+poster and timestamps.
 
 For videos, pass **raw** values and let the renderer localise them:
 `--duration 692` (seconds), `--published 20260816`, `--views 13232`. It writes
@@ -206,6 +207,15 @@ Optional — include only when the source actually earns it, never as an empty h
 - `<h2>Going deeper</h2>` — what the source leaves open: unanswered questions,
   claims made without evidence, and the concrete next thing to read or try.
 
+**Article figures** — `references/web.md` returns any diagrams, charts, or
+screenshots the source page had. Include one only when it is load-bearing —
+the diagram *is* the explanation, the chart *is* the evidence — never a
+decorative photo, a header banner, or an author headshot. Cap at 3, the same
+"more than that is a dump" discipline as Key Points. Not a section of its
+own: place `<figure><img src="<url>" alt="<alt text>"><figcaption>caption</figcaption></figure>`
+inline, in whichever section it supports — most often *How it works*, *Key
+points*, or *Concepts*.
+
 ## Rules
 
 - **Didactic means explaining, not compressing.** A bullet only someone who already
@@ -224,12 +234,14 @@ Optional — include only when the source actually earns it, never as an empty h
   in Step 2; the structure doesn't change. Pass the matching `--lang` (`en` or `es`)
   to the renderer.
 - **Keep the HTML plain:** headings, paragraphs, lists, `<strong>`, `<em>`, links,
-  `<pre><code>`, `<blockquote>`, simple tables. No inline `style` attributes, no
+  `<pre><code>`, `<blockquote>`, simple tables, and (articles only)
+  `<figure><img><figcaption>` for a source figure. No inline `style` attributes, no
   `<script>`, no classes — the stylesheet already handles presentation, and a note
   that fights it will look wrong in dark mode.
-- **Escape what you write:** `&`, `<` and `>` inside prose or code samples must be
-  `&amp;`, `&lt;`, `&gt;`. The renderer escapes the masthead fields but passes the
-  body through untouched.
+- **Escape what you write:** `&`, `<` and `>` must be `&amp;`, `&lt;`, `&gt;` —
+  in prose, in code samples, and in attribute values like an `<img src>` URL
+  (image URLs routinely contain an unescaped `&` in their query string). The
+  renderer escapes the masthead fields but passes the body through untouched.
 
 ## Related
 
