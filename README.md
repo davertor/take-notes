@@ -95,6 +95,7 @@ skills/take-notes/
     ...                    transcript helpers (see Credits)
   assets/
     template.html         the two-pane video note layout
+    article-template.html the two-pane article note layout
   agents/
     openai.yaml           Codex: never auto-invoke, require an explicit $skill
 ```
