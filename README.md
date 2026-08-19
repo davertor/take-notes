@@ -8,7 +8,6 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-22c55e?style=flat-square" alt="MIT license"></a>
   <img src="https://img.shields.io/badge/Agent-Skill-7C3AED?style=flat-square" alt="Agent Skill">
   <img src="https://img.shields.io/badge/version-1.0.0-0891b2?style=flat-square" alt="Version 1.0.0">
-  <img src="https://img.shields.io/badge/python%20deps-none-64748b?style=flat-square" alt="No Python dependencies">
 </p>
 
 **Notes you can actually learn from — not a transcript dump, not a one-paragraph summary.**
@@ -34,7 +33,7 @@ Works in **Claude Code, Codex, Cursor, OpenCode, and Gemini CLI** — one
 /plugin install take-notes@take-notes
 ```
 
-**Codex, Cursor, OpenCode, Gemini CLI**, or any of 50+ [Agent Skills](https://agentskills.io) hosts:
+**Codex, Cursor, OpenCode, Gemini CLI**, or any other [Agent Skills](https://agentskills.io) host:
 
 ```sh
 npx skills add davertor/take-notes -g
