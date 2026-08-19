@@ -1,0 +1,44 @@
+name: Bad notes from a source
+description: The skill ran, but the notes it produced were wrong, thin, or unhelpful
+labels: ["notes-quality"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        This is the most useful report this project gets. The note-writing
+        standard in `SKILL.md` improves from real failures — please include the
+        URL so the failure can be reproduced.
+  - type: input
+    id: url
+    attributes:
+      label: Source URL
+      placeholder: https://youtu.be/… or https://example.com/post
+    validations:
+      required: true
+  - type: dropdown
+    id: kind
+    attributes:
+      label: Source type
+      options: [YouTube or other video, Web article, arXiv paper, GitHub repo, Local media file]
+    validations:
+      required: true
+  - type: textarea
+    id: wrong
+    attributes:
+      label: What the notes got wrong
+      description: Which section, and what it should have said instead.
+      placeholder: |
+        The "one takeaway" restated the title instead of naming an insight.
+        Key points 3 and 5 are the same claim in different words.
+    validations:
+      required: true
+  - type: input
+    id: lang
+    attributes:
+      label: Language used
+      placeholder: en / es, and whether it matched the source
+  - type: textarea
+    id: note
+    attributes:
+      label: The note itself (optional)
+      description: Drag the generated HTML file in, or paste the sections that went wrong.

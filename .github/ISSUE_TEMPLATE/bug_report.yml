@@ -1,0 +1,49 @@
+name: Bug report
+description: Something crashed, failed to install, or did not run
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        For notes that ran but came out badly, use **Bad notes from a source**
+        instead — it asks for what that case needs.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you ran, what you expected, what you got. Paste the error verbatim.
+    validations:
+      required: true
+  - type: dropdown
+    id: tool
+    attributes:
+      label: Agent tool
+      options: [Claude Code, Codex, Cursor, OpenCode, Gemini CLI, Other]
+    validations:
+      required: true
+  - type: dropdown
+    id: install
+    attributes:
+      label: How you installed it
+      options: ["/plugin marketplace", "npx skills add", "link-skill.sh (clone)", "Other"]
+    validations:
+      required: true
+  - type: input
+    id: os
+    attributes:
+      label: OS
+      placeholder: macOS 15.5 / Ubuntu 24.04 / Windows 11
+    validations:
+      required: true
+  - type: textarea
+    id: selftest
+    attributes:
+      label: Self-check output
+      description: Helps localise the failure fast.
+      value: |
+        ```
+        for s in render notes gallery export transcript; do
+          uv run skills/take-notes/scripts/$s.py --selftest
+        done
+        ```
+      render: shell

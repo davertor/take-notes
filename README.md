@@ -1,18 +1,67 @@
+<p align="center">
+  <strong>English</strong> · <a href="./README.es.md">Español</a>
+</p>
+
 # take-notes
 
-Turns a **YouTube video or web article** into didactic study notes — executive
-summary, the one takeaway, key points, a timestamped or sectioned outline — as
-a self-contained HTML page under `~/take-notes/html_reports/`, opened in the
-browser.
+**Notes you can actually learn from — not a transcript dump, not a one-paragraph summary.**
+
+Point it at a video, an article, a paper, or a repo. You get a self-contained
+HTML page — executive summary, the one takeaway, key points, and a timestamped
+or sectioned outline — written to `~/take-notes/html_reports/` and opened in
+your browser. They pile up into a browsable archive you own, on your disk, in
+plain HTML that will still open in ten years.
+
+<p align="center">
+  <img src="docs/article-note.png" width="820" alt="A rendered article note: rail with byline kicker and numbered index on the left, scroll-spy sections and drop-capped prose on the right">
+</p>
+
+[![License](https://img.shields.io/badge/license-MIT-22c55e?style=flat-square)](LICENSE)
+![Agent Skill](https://img.shields.io/badge/Agent-Skill-7C3AED?style=flat-square)
+![Version](https://img.shields.io/badge/version-1.0.0-0891b2?style=flat-square)
+![Dependencies](https://img.shields.io/badge/python%20deps-none-64748b?style=flat-square)
 
 Works in **Claude Code, Codex, Cursor, OpenCode, and Gemini CLI** — one
-`SKILL.md`, no per-tool variants.
+`SKILL.md`, no per-tool variants. Every script is stdlib-only Python run through
+`uv`; there is nothing to `pip install`.
 
-Supported sources:
+**Claude Code** (auto-updates via the marketplace):
 
-- **YouTube** — any video URL, including ones yt-dlp supports beyond YouTube
-- **Local media files** — video/audio already on disk
-- **Web articles** — blog posts, docs pages, news articles (any other `http(s)` page)
+```text
+/plugin marketplace add davertor/take-notes
+/plugin install take-notes@take-notes
+```
+
+**Codex, Cursor, OpenCode, Gemini CLI**, or any of 50+ [Agent Skills](https://agentskills.io) hosts:
+
+```sh
+npx skills add davertor/take-notes -g
+```
+
+More ways in — including a plain clone you can edit — under [Install](#install).
+
+## Why I built it
+
+I kept watching hour-long videos and reading long posts, feeling like I'd
+learned something, and then having nothing to show for it a week later. The
+summaries I could get were either a wall of transcript or three bland
+sentences — both useless for actually remembering anything.
+
+So the rule this skill follows is: **explain, don't compress.** A bullet only
+someone who already watched the video would understand has failed. Order things
+by what has to be understood first, not by when they were said. Say what the
+source left unanswered. And keep every note as one HTML file on my own disk,
+because notes that live in someone else's product stop being yours eventually.
+
+## Sources
+
+| | |
+|---|---|
+| **YouTube** | any video URL, including the many non-YouTube sites yt-dlp supports |
+| **Local media** | video or audio already on disk |
+| **Web articles** | blog posts, docs pages, news articles |
+| **arXiv papers** | full text via arXiv's HTML rendering, not just the abstract |
+| **GitHub repos** | an orientation note: what it does, how it's laid out, what to read first |
 
 <table>
 
@@ -113,9 +162,29 @@ by hand simply stops appearing.
 Flags: `--no-open`, `--notes-dir`, `--out`, `--lang en|es` (defaults to the
 `language` in `~/take-notes/config.json`).
 
+### Export
+
+Notes are yours, so they leave cleanly. Both exporters read the rendered notes;
+neither needs an agent or costs tokens.
+
+```sh
+uv run skills/take-notes/scripts/export.py --format md     # → ~/take-notes/markdown/
+uv run skills/take-notes/scripts/export.py --format anki   # → ~/take-notes/take-notes.txt
+```
+
+- **`md`** — one Markdown file per note with YAML frontmatter. Drop the folder
+  into an Obsidian vault, or import it into Notion. Timestamp links survive as
+  real Markdown links.
+- **`anki`** — a tab-separated deck file. Cards come from *Key points* (claim →
+  detail), *Concepts* (term → definition), and the one takeaway. Import with
+  **File → Import** and leave *Allow HTML in fields* on.
+
 ## Install
 
-Two ways in. Neither auto-updates — re-run it (or `git pull`) for the latest.
+The `/plugin` route at the top of this README is the one to use in Claude Code —
+it is the only one that auto-updates. The two below are for everything else, or
+for editing the skill yourself. Neither auto-updates; re-run it (or `git pull`)
+for the latest.
 
 ### Option A — clone + symlink, for tinkering
 
@@ -142,7 +211,7 @@ npx skills add davertor/take-notes -g -a claude-code   # one agent only
 **Pass `-g`** — without it, `add` installs project-level into the current
 folder instead of your user directories. Update with `npx skills update take-notes`.
 
-### What you'll need
+### Prerequisites
 
 
 |                                      |                                                                                               |
@@ -159,60 +228,24 @@ renames it.
 
 ## Contribute
 
-Issues and pull requests are welcome. The most useful things:
-
-- **A source it handled badly** — open an issue with the URL and what the notes
-  got wrong. That's the bug report this project needs most; the writing standard
-  improves from real failures, not from hypotheticals.
-- **A new source guide** — a file under `references/` teaching the skill to
-  acquire from somewhere else (a podcast host, a PDF, a paywalled reader).
-- **A third language** — `en` and `es` are hardcoded in `SKILL.md` Step 2 and in
-  the string tables at the top of `render.py` and `gallery.py`.
-- **Design and accessibility fixes** to the three templates under `assets/`.
-
-### Working on it
+Issues and pull requests are welcome — **[CONTRIBUTING.md](CONTRIBUTING.md)**
+has the setup, the self-checks, and the four constraints that are easy to trip
+over. The most useful issue you can open is a source it handled badly, with the
+URL.
 
 ```sh
-git clone https://github.com/davertor/take-notes
-cd take-notes
-./link-skill.sh          # symlinks your checkout into every tool — edits are live
-```
+git clone https://github.com/davertor/take-notes && cd take-notes
+./link-skill.sh                                        # edits are live in every tool
 
-No build, no virtualenv, no install step: `uv` provisions Python per script,
-and every script is **stdlib-only**. Keep it that way — a dependency is a much
-bigger ask of everyone who installs this than the few lines it saves.
-
-There is no test suite. Each script that has non-trivial logic carries its own
-asserts instead, and all three must pass before a PR:
-
-```sh
-for s in render gallery transcript; do
+for s in render notes gallery export transcript; do    # the whole test suite
   uv run skills/take-notes/scripts/$s.py --selftest
 done
 ```
 
-Commits and PR titles follow [Conventional
-Commits](https://www.conventionalcommits.org/) — `feat(take-notes): …`,
-`fix(skills): …`, `docs: …` — matching the existing history. English
-everywhere in the repo, whatever language your notes come out in.
-
-### Three things that will bite you
-
-The skill follows the [Agent Skills](https://agentskills.io/specification)
-layout, so `skills/take-notes/` is browsable on its own. What it won't tell you:
-
-- **Never-auto-invoke is two files.** `disable-model-invocation: true` in
-  `SKILL.md` and `agents/openai.yaml` (its Codex counterpart) are what keep the
-  skill user-invoked. Change one without the other and that tool starts firing
-  on any URL you mention.
-- **The note-writing standard lives only in `SKILL.md`.** The guides under
-  `references/` cover acquisition and hand back the same five fields (title,
-  byline, span, canonical URL, body) whatever the source. Keep it that way —
-  two copies of the writing standard will drift.
-- **The gallery reads the notes, not an index.** So the masthead classes in
-  both note templates — `.poster`, `.kicker`, `.meta`, `.watch` — are a
-  contract with `gallery.py`. Rename one and its `--selftest` fails, which is
-  the point. Run it after touching a template.
+Stdlib only, English everywhere, [Conventional
+Commits](https://www.conventionalcommits.org/) — matching
+[CHANGELOG.md](CHANGELOG.md), which is maintained by hand alongside
+`skills/take-notes/SKILL.md`'s `version` field.
 
 ## Credits
 
