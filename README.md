@@ -4,6 +4,13 @@
 
 # take-notes
 
+<p align="center">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-22c55e?style=flat-square" alt="MIT license"></a>
+  <img src="https://img.shields.io/badge/Agent-Skill-7C3AED?style=flat-square" alt="Agent Skill">
+  <img src="https://img.shields.io/badge/version-1.0.0-0891b2?style=flat-square" alt="Version 1.0.0">
+  <img src="https://img.shields.io/badge/python%20deps-none-64748b?style=flat-square" alt="No Python dependencies">
+</p>
+
 **Notes you can actually learn from — not a transcript dump, not a one-paragraph summary.**
 
 Point it at a video, an article, a paper, or a repo. You get a self-contained
@@ -15,11 +22,6 @@ plain HTML that will still open in ten years.
 <p align="center">
   <img src="docs/article-note.png" width="820" alt="A rendered article note: rail with byline kicker and numbered index on the left, scroll-spy sections and drop-capped prose on the right">
 </p>
-
-[![License](https://img.shields.io/badge/license-MIT-22c55e?style=flat-square)](LICENSE)
-![Agent Skill](https://img.shields.io/badge/Agent-Skill-7C3AED?style=flat-square)
-![Version](https://img.shields.io/badge/version-1.0.0-0891b2?style=flat-square)
-![Dependencies](https://img.shields.io/badge/python%20deps-none-64748b?style=flat-square)
 
 Works in **Claude Code, Codex, Cursor, OpenCode, and Gemini CLI** — one
 `SKILL.md`, no per-tool variants. Every script is stdlib-only Python run through
