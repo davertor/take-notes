@@ -5,16 +5,13 @@
   </picture>
 </p>
 
-<p align="center">
-  <strong>English</strong> · <a href="./README.es.md">Español</a>
-</p>
-
 # take-notes
 
 <p align="center">
-  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-22c55e?style=flat-square" alt="MIT license"></a>
-  <img src="https://img.shields.io/badge/Agent-Skill-7C3AED?style=flat-square" alt="Agent Skill">
-  <img src="https://img.shields.io/badge/version-1.0.0-0891b2?style=flat-square" alt="Version 1.0.0">
+  <img src="https://img.shields.io/badge/version-1.0.0-ab2f19?style=flat-square&labelColor=191511" alt="Version 1.0.0">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-57503f?style=flat-square&labelColor=191511" alt="MIT license"></a>
+  <img src="https://img.shields.io/badge/agents-5%20supported-57503f?style=flat-square&labelColor=191511" alt="5 agent tools supported">
+  <img src="https://img.shields.io/badge/output-html%20%C2%B7%20md%20%C2%B7%20anki-57503f?style=flat-square&labelColor=191511" alt="Output: HTML, Markdown, Anki">
 </p>
 
 **Notes you can actually learn from — not a transcript dump, not a one-paragraph summary.**
