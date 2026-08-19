@@ -1,13 +1,17 @@
 <p align="center">
-  <strong>English</strong> · <a href="./README.es.md">Español</a>
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/hero-dark.png">
+    <img src="docs/hero-light.png" width="900" alt="take·notes — turns a video, article, paper, or repo into didactic study notes, one self-contained HTML page you keep. Claude Code, Codex, Cursor, OpenCode, Gemini CLI.">
+  </picture>
 </p>
 
 # take-notes
 
 <p align="center">
-  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-22c55e?style=flat-square" alt="MIT license"></a>
-  <img src="https://img.shields.io/badge/Agent-Skill-7C3AED?style=flat-square" alt="Agent Skill">
-  <img src="https://img.shields.io/badge/version-1.0.0-0891b2?style=flat-square" alt="Version 1.0.0">
+  <img src="https://img.shields.io/badge/version-1.0.0-ab2f19?style=flat-square&labelColor=191511" alt="Version 1.0.0">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-57503f?style=flat-square&labelColor=191511" alt="MIT license"></a>
+  <img src="https://img.shields.io/badge/agents-5%20supported-57503f?style=flat-square&labelColor=191511" alt="5 agent tools supported">
+  <img src="https://img.shields.io/badge/output-html%20%C2%B7%20md%20%C2%B7%20anki-57503f?style=flat-square&labelColor=191511" alt="Output: HTML, Markdown, Anki">
 </p>
 
 **Notes you can actually learn from — not a transcript dump, not a one-paragraph summary.**
@@ -17,10 +21,6 @@ HTML page — executive summary, the one takeaway, key points, and a timestamped
 or sectioned outline — written to `~/take-notes/html_reports/` and opened in
 your browser. They pile up into a browsable archive you own, on your disk, in
 plain HTML that will still open in ten years.
-
-<p align="center">
-  <img src="docs/article-note.png" width="820" alt="A rendered article note: rail with byline kicker and numbered index on the left, scroll-spy sections and drop-capped prose on the right">
-</p>
 
 Works in **Claude Code, Codex, Cursor, OpenCode, and Gemini CLI** — one
 `SKILL.md`, no per-tool variants. Every script is stdlib-only Python run through
