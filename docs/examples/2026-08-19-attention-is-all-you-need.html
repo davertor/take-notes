@@ -1,0 +1,536 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Attention Is All You Need</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,700;1,9..144,500&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,600;1,6..72,400&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* ---------------------------------------------------------------------------
+   Annotated offprint — the article variant. Same paper/ink/pen system as the
+   video template (assets/template.html); the rail differs because an article
+   has no thumbnail. A masthead kicker stands in for the poster, and the index
+   gutter carries a section number instead of a timestamp. Keep the two
+   templates in visual sync deliberately, but resist merging them: each stays
+   a self-contained file, so neither can break the other on edit.
+   --------------------------------------------------------------------------- */
+:root {
+  --paper:   #f7f3ea;
+  --surface: #f1ebdf;
+  --raised:  #e8e1d1;
+  --rule:    #d8d0be;
+  --ink:     #191511;
+  --ink-70:  #57503f;
+  --ink-45:  #6e6653;   /* AA on --paper at label sizes; do not lighten */
+  --pen:     #ab2f19;
+  --measure: 33rem;
+  --rail:    23rem;
+  --label:   7rem;
+  --frame:   49rem;
+  --sheet:   96rem;   /* caps rail+content as one unit on wide screens; see .sheet */
+  --grain:   .04;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --paper:   #17150f;
+    --surface: #1e1b15;
+    --raised:  #262218;
+    --rule:    #38332a;
+    --ink:     #efe8d8;
+    --ink-70:  #b3aa94;
+    --ink-45:  #8d8471;
+    --pen:     #f0765a;
+    --grain:   .07;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font: 400 1.0625rem/1.68 Newsreader, "Iowan Old Style", Georgia, serif;
+  font-optical-sizing: auto;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Paper grain: keeps large flat areas from reading as flat screen colour. */
+body::after {
+  content: ""; position: fixed; inset: 0; z-index: 9; pointer-events: none;
+  opacity: var(--grain);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='4'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+a { color: var(--pen); text-decoration-thickness: .5px; text-underline-offset: 3px; }
+strong { font-weight: 600; }
+p { margin: 0 0 1rem; }
+ul, ol { padding-left: 1.1rem; margin: 0 0 1rem; }
+li { margin: 0 0 .7rem; padding-left: .25rem; }
+li::marker { color: var(--pen); }
+code {
+  font: 400 .84em/1.5 "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  background: var(--raised); padding: .1em .38em; border-radius: 2px;
+}
+pre {
+  background: var(--raised); padding: 1rem 1.1rem; margin: 0 0 1rem;
+  border-left: 2px solid var(--rule); overflow-x: auto;
+  font-size: .84rem; line-height: 1.6;
+}
+pre code { background: none; padding: 0; }
+blockquote {
+  margin: 1.3rem 0; padding: .1rem 0 .1rem 1.25rem;
+  border-left: 2px solid var(--pen);
+  font-style: italic; color: var(--ink-70);
+}
+blockquote p:last-child { margin-bottom: 0; }
+table { border-collapse: collapse; width: 100%; font-size: .92rem; margin: 0 0 1rem; }
+th, td { text-align: left; padding: .5rem .7rem; border-bottom: 1px solid var(--rule); }
+th {
+  font: 500 .68rem/1 "JetBrains Mono", ui-monospace, monospace;
+  text-transform: uppercase; letter-spacing: .08em; color: var(--ink-70);
+}
+
+/* Figures pulled from the source article: framed like the rest of the offprint's
+   bordered surfaces, but never cropped — an arbitrary diagram forced into a
+   fixed aspect ratio can lose the part that made it worth keeping. */
+figure {
+  margin: 0 0 1.3rem; background: var(--raised); border: 1px solid var(--rule);
+}
+figure img { display: block; width: 100%; height: auto; }
+figcaption {
+  padding: .55rem .8rem;
+  font: 400 .78rem/1.5 "JetBrains Mono", ui-monospace, monospace;
+  color: var(--ink-70); border-top: 1px solid var(--rule);
+}
+
+/* --- Shell ---------------------------------------------------------------- */
+/* Cap the whole rail+content composition and centre it as one unit past
+   --sheet: growing --frame instead would stretch prose past a comfortable
+   line length, and letting only .column centre leaves the extra space
+   stranded to the right of the text with the rail pinned flush left. */
+.sheet {
+  display: flex; align-items: flex-start; min-height: 100vh;
+  max-width: var(--sheet); margin-inline: auto;
+}
+
+/* --- Rail ----------------------------------------------------------------- */
+.rail {
+  width: var(--rail); flex: 0 0 var(--rail);
+  position: sticky; top: 0; align-self: flex-start;
+  height: 100vh; overflow-y: auto; overscroll-behavior: contain;
+  padding: 2.25rem 1.75rem 2.5rem;
+  background: var(--surface);
+  border-right: 1px solid var(--rule);
+  scrollbar-width: thin; scrollbar-color: var(--rule) transparent;
+}
+
+/* Masthead kicker: stands in for the poster an article does not have — the
+   "who published this" identity, the way a print offprint names the journal
+   above the headline rather than illustrating it. */
+.kicker {
+  display: block; margin: 0 0 .9rem;
+  font: 500 .68rem/1.3 "JetBrains Mono", ui-monospace, monospace;
+  letter-spacing: .1em; text-transform: uppercase; color: var(--ink-45);
+}
+
+h1 {
+  font: 700 1.42rem/1.2 Fraunces, "Iowan Old Style", Georgia, serif;
+  font-variation-settings: "SOFT" 40, "WONK" 1;
+  letter-spacing: -.015em; margin: 0 0 .75rem; text-wrap: balance;
+}
+.meta {
+  font: 400 .72rem/1.7 "JetBrains Mono", ui-monospace, monospace;
+  color: var(--ink-70); margin: 0 0 1.15rem; text-wrap: pretty;
+}
+.meta a { color: inherit; text-decoration-color: var(--rule); }
+.meta a:hover { color: var(--pen); }
+.watch {
+  display: inline-flex; align-items: baseline; gap: .4rem;
+  font: 500 .68rem/1 "JetBrains Mono", ui-monospace, monospace;
+  letter-spacing: .07em; text-transform: uppercase;
+  color: var(--ink); text-decoration: none;
+  border-bottom: 1px solid var(--pen); padding-bottom: .32rem;
+  transition: color .2s ease, gap .2s ease;
+}
+.watch:hover { color: var(--pen); gap: .65rem; }
+.watch span { transition: transform .2s ease; }
+.watch:hover span { transform: translateX(2px); }
+
+/* Index: sequential marks instead of timestamps — an article has no clock to
+   annotate, so the gutter counts instead. */
+#index { margin-top: 2rem; }
+#index section { display: block; margin: 0; }         /* never the hung-label grid */
+#index h2 {
+  font: 500 .64rem/1 "JetBrains Mono", ui-monospace, monospace;
+  letter-spacing: .15em; text-transform: uppercase; color: var(--ink-45);
+  margin: 0 0 .35rem; padding: 0 0 .7rem;
+  border-bottom: 1px solid var(--rule);
+}
+#index ul { list-style: none; margin: 0; padding: 0; }
+#index li {
+  display: grid; grid-template-columns: 2.9rem minmax(0, 1fr); gap: .5rem;
+  align-items: baseline; margin: 0; padding: .55rem 0;
+  border-bottom: 1px solid transparent;
+}
+#index li::before {
+  content: attr(data-n);
+  font: 500 .66rem/1.6 "JetBrains Mono", ui-monospace, monospace;
+  color: var(--pen); letter-spacing: -.02em; font-variant-numeric: tabular-nums;
+}
+#index li > .row { min-width: 0; text-wrap: pretty; }
+#index li a { color: var(--ink); text-decoration: none; font-weight: 600; }
+#index li .sub { display: block; color: var(--ink-70); font: 400 .8rem/1.42 Newsreader, Georgia, serif; }
+#index li:hover { border-bottom-color: var(--rule); }
+#index li:hover a, #index li:hover > .row { color: var(--pen); }
+
+/* --- Reading column ------------------------------------------------------- */
+.column { flex: 1; min-width: 0; padding: 0 0 5rem; }
+
+.spybar {
+  position: sticky; top: 0; z-index: 8;
+  background: color-mix(in srgb, var(--paper) 90%, transparent);
+  backdrop-filter: blur(14px) saturate(1.3);
+  border-bottom: 1px solid var(--rule);
+}
+nav.spy {
+  display: flex; gap: 1.35rem; flex-wrap: nowrap;
+  max-width: var(--frame); margin-inline: auto;
+  padding: 1.1rem 3rem .95rem;
+  overflow-x: auto; scrollbar-width: none;
+}
+nav.spy::-webkit-scrollbar { display: none; }
+nav.spy a {
+  position: relative; text-decoration: none; white-space: nowrap;
+  font: 500 .64rem/1 "JetBrains Mono", ui-monospace, monospace;
+  letter-spacing: .09em; text-transform: uppercase;
+  color: var(--ink-70); padding-bottom: .4rem;
+  transition: color .25s ease;
+}
+nav.spy a::after {
+  content: ""; position: absolute; left: 0; bottom: 0; height: 2px;
+  width: 100%; background: var(--pen);
+  transform: scaleX(0); transform-origin: left; transition: transform .3s ease;
+}
+nav.spy a:hover { color: var(--ink); }
+nav.spy a[aria-current="true"] { color: var(--pen); }
+nav.spy a[aria-current="true"]::after { transform: scaleX(1); }
+
+article { max-width: var(--frame); margin-inline: auto; padding: 2.75rem 3rem 0; }
+
+#body > section {
+  display: grid;
+  grid-template-columns: var(--label) minmax(0, var(--measure));
+  gap: 0 2.25rem;
+  padding: 0 0 2.5rem; margin: 0 0 2.5rem;
+  border-bottom: 1px solid var(--rule);
+  scroll-margin-top: 4.5rem;
+}
+#body > section:last-child { border-bottom: none; margin-bottom: 0; }
+#body > section > h2 {
+  grid-column: 1; margin: .42rem 0 0;
+  position: sticky; top: 4.75rem; align-self: start;
+  font: 500 .66rem/1.45 "JetBrains Mono", ui-monospace, monospace;
+  letter-spacing: .1em; text-transform: uppercase;
+  color: var(--ink-45); text-align: right; hyphens: none;
+}
+#body > section > :not(h2) { grid-column: 2; }
+#body > section > :last-child { margin-bottom: 0; }
+#body > section > :last-child > li:last-child { margin-bottom: 0; }
+#body > section > h3 {
+  font: 600 1.08rem/1.35 Fraunces, Georgia, serif;
+  font-variation-settings: "SOFT" 30;
+  margin: 1.75rem 0 .55rem;
+}
+
+#body > section:first-of-type > p:first-of-type::first-letter {
+  float: left; line-height: .74; padding: .04em .09em 0 0;
+  font: 700 3.15em/1 Fraunces, Georgia, serif;
+  font-variation-settings: "SOFT" 0, "WONK" 1;
+  color: var(--pen);
+}
+
+#body > section.is-takeaway > p {
+  font: 400 1.16rem/1.5 Fraunces, Georgia, serif;
+  font-variation-settings: "SOFT" 50, "WONK" 1;
+  letter-spacing: -.005em; text-wrap: pretty;
+}
+#body > section.is-takeaway strong { font-weight: 500; }
+
+footer {
+  max-width: var(--frame); margin-inline: auto;
+  padding: 1.4rem 3rem 2.5rem;
+  border-top: 1px solid var(--rule);
+  font: 400 .7rem/1.7 "JetBrains Mono", ui-monospace, monospace;
+  color: var(--ink-45);
+}
+footer a { color: inherit; text-decoration-color: var(--rule); }
+
+/* --- Entrance: one orchestrated moment, then out of the way --------------- */
+@media (prefers-reduced-motion: no-preference) {
+  .rail > *, nav.spy, #body > section { animation: rise .6s cubic-bezier(.22,.61,.36,1) backwards; }
+  .kicker { animation-delay: .02s; }
+  h1 { animation-delay: .07s; }
+  .meta { animation-delay: .11s; }
+  .watch { animation-delay: .15s; }
+  #index { animation-delay: .19s; }
+  nav.spy { animation-delay: .08s; }
+  #body > section:nth-of-type(1) { animation-delay: .14s; }
+  #body > section:nth-of-type(2) { animation-delay: .19s; }
+  #body > section:nth-of-type(3) { animation-delay: .24s; }
+  #body > section:nth-of-type(n+4) { animation-delay: .29s; }
+}
+@keyframes rise { from { opacity: 0; transform: translateY(8px); } }
+
+/* --- Narrow --------------------------------------------------------------- */
+@media (max-width: 1180px) {
+  :root { --label: 5.5rem; }
+  article, nav.spy, footer { padding-left: 2rem; padding-right: 2rem; }
+}
+@media (max-width: 1000px) {
+  :root { --frame: 100%; }
+}
+@media (max-width: 1000px) {
+  #body > section { grid-template-columns: minmax(0, var(--measure)); gap: 0; }
+  #body > section > h2 { position: static; text-align: left; margin: 0 0 .85rem; }
+  #body > section > :not(h2) { grid-column: 1; }
+}
+@media (max-width: 860px) {
+  .sheet { display: block; }
+  .rail {
+    width: auto; height: auto; position: static;
+    border-right: none; border-bottom: 1px solid var(--rule);
+    padding: 1.75rem 2rem 2rem;
+  }
+  .rail > *, #index { max-width: 34rem; }
+  article { padding-top: 2rem; }
+}
+
+/* --- Print: it is a study note; it should print like one ------------------ */
+@media print {
+  :root {
+    --paper: #fff; --surface: #fff; --raised: #f4f4f4;
+    --ink: #000; --ink-70: #333; --ink-45: #555; --rule: #bbb; --pen: #000;
+  }
+  body::after, nav.spy, .watch { display: none; }
+  .sheet { display: block; }
+  .rail {
+    width: auto; height: auto; position: static; padding: 0 0 1.25rem;
+    border-right: none; border-bottom: 1pt solid #000; background: none;
+  }
+  article { padding: 1.25rem 0 0; }
+  #body > section { display: block; margin: 0 0 1.25rem; padding: 0 0 1.25rem; break-inside: avoid; }
+  #body > section > h2 { position: static; text-align: left; margin: 0 0 .5rem; }
+  #body > section:first-of-type > p:first-of-type::first-letter {
+    font-size: inherit; float: none; color: inherit; padding: 0;
+  }
+  figure { break-inside: avoid; }
+  body { font-size: 10.5pt; }
+  footer { padding: .8rem 0 0; }
+}
+</style>
+</head>
+<body>
+<div class="sheet">
+  <aside class="rail">
+    <span class="kicker">Ashish Vaswani et al.</span>
+    <h1>Attention Is All You Need</h1>
+    <p class="meta">Jun 2017 · v7 &middot; 7 min read</p>
+    <a class="watch" href="https://arxiv.org/abs/1706.03762" target="_blank" rel="noopener">Open original <span>&#8594;</span></a>
+    <div id="index"></div>
+  </aside>
+
+  <div class="column">
+    <div class="spybar"><nav class="spy" id="spy" aria-label="Sections"></nav></div>
+    <article id="body">
+<h2>Executive summary</h2>
+<p>This paper introduces the Transformer, a sequence model that drops recurrence and convolution entirely and keeps only attention. Its argument is not primarily about accuracy — it is about the shape of the computation: recurrent models must process position <em>t</em> before position <em>t+1</em>, which caps how much of a training batch can run in parallel, while attention relates every position to every other in a single step. The authors back this with a complexity table showing that self-attention connects any two positions in a constant number of operations where a recurrent layer needs a number growing with the distance between them. The practical payoff is a training run measured in hours rather than weeks, and new state-of-the-art translation scores on WMT 2014 English-to-German (28.4 BLEU) and English-to-French (41.8 BLEU) as a side effect.</p>
+
+<h2>The one takeaway</h2>
+<p><strong>Removing recurrence is what made the model fast, and the speed is what made the quality possible — attention was already known to help, but only by abandoning sequential computation entirely could the authors train a bigger model on more data in less time.</strong></p>
+
+<h2>Key points</h2>
+<ul>
+<li><strong>The bottleneck being attacked is parallelism, not accuracy</strong> — a recurrent hidden state <em>h(t)</em> is a function of <em>h(t-1)</em>, so the work inside one training example cannot be spread across devices. That constraint bites hardest on long sequences, exactly where memory limits also stop you from batching more examples to compensate.</li>
+<li><strong>Attention is defined as a weighted lookup</strong> — a query is compared against every key, the comparisons become weights via softmax, and the output is the weighted sum of the values. Nothing about that definition mentions order or distance, which is why position becomes a separate problem the paper has to solve.</li>
+<li><strong>The scaling factor is a gradient fix, not a normalisation habit</strong> — with keys and queries of dimension <em>d(k)</em>, the dot product of two random vectors has variance <em>d(k)</em>, so large dimensions push the softmax into saturated regions where gradients nearly vanish. Dividing by the square root of <em>d(k)</em> restores unit variance and keeps the softmax in a trainable range.</li>
+<li><strong>Multi-head attention buys diversity at no extra cost</strong> — instead of one attention over 512 dimensions, the model runs 8 attentions over 64 dimensions each, then concatenates. Because each head is narrower, total compute matches the single-head version, but averaging no longer collapses distinct relationships into one blurred signal.</li>
+<li><strong>Position has to be added back by hand</strong> — with no recurrence and no convolution, the model is permutation-invariant: it cannot tell "dog bites man" from "man bites dog". Fixed sinusoidal encodings of varying frequency are added to the embeddings; the authors chose them over learned ones (which scored the same) on the hypothesis that they extrapolate to sequences longer than any seen in training.</li>
+<li><strong>The complexity table is the real argument</strong> — self-attention costs <em>O(n²·d)</em> per layer but has a maximum path length of <em>O(1)</em>; a recurrent layer costs <em>O(n·d²)</em> with a path length of <em>O(n)</em>. Short paths are what make long-range dependencies learnable, since gradient signal degrades with every step it must traverse.</li>
+<li><strong>The quadratic cost was justified by an assumption about sequence length</strong> — self-attention is cheaper than recurrence only when <em>n &lt; d</em>, which the authors note "typically" holds for translation with word-piece vocabularies. The paper flags restricted, neighbourhood-limited attention as future work for longer sequences.</li>
+<li><strong>Ablations show which parts carry weight</strong> — collapsing to a single attention head costs 0.9 BLEU, and shrinking the key dimension <em>d(k)</em> also hurts, suggesting that deciding <em>how well a query matches a key</em> is a harder function than a plain dot product. Dropout and model size behave as expected; the positional-encoding choice barely registers.</li>
+<li><strong>It generalises beyond translation</strong> — a 4-layer Transformer reaches 92.7 F1 on English constituency parsing, beating every prior model except one, with almost no task-specific tuning. That matters because the task has a strongly constrained output that is longer than its input, which is where sequence-to-sequence models had historically failed.</li>
+</ul>
+
+<h2>Concepts</h2>
+<ul>
+<li><strong>Sequence transduction</strong> — mapping one sequence to another, where the output length is not fixed by the input length. Translation and parsing are both transduction; classification is not.</li>
+<li><strong>Self-attention</strong> — attention where queries, keys, and values all come from the same sequence, so the layer relates a sentence to itself rather than to a second sequence.</li>
+<li><strong>Maximum path length</strong> — the number of layer-to-layer hops a signal must cross to connect two positions. The paper's central quantity: it is the distance a gradient has to survive for the model to learn that two distant tokens are related.</li>
+<li><strong>BLEU</strong> — the standard translation metric, comparing n-gram overlap with human reference translations. Differences under about 1 point are generally not meaningful; the paper's claimed margin is over 2.</li>
+<li><strong>Label smoothing</strong> — training against slightly-less-than-certain targets. It makes the model's probability estimates worse (perplexity rises) while making its output better (accuracy and BLEU rise), because it stops the model committing too hard to single tokens.</li>
+</ul>
+
+<h2>How it works</h2>
+<ol>
+<li>Tokens are embedded, scaled, and summed with sinusoidal positional encodings, so each vector carries both what the token is and where it sits.</li>
+<li>Each of the 6 encoder layers applies multi-head self-attention, then a position-wise feed-forward network — two linear layers with a ReLU between them, widening 512 to 2048 and back. Each sub-layer is wrapped in a residual connection and layer normalisation.</li>
+<li>Each of the 6 decoder layers does the same, plus a third sub-layer attending over the encoder's output. Its self-attention is masked: future positions are set to negative infinity before the softmax, so position <em>i</em> can only see positions before it and the model stays auto-regressive.</li>
+<li>The decoder output is projected and softmaxed into next-token probabilities, using the same weight matrix as the embeddings.</li>
+<li>Training uses Adam with a warm-up schedule: the learning rate rises linearly for 4,000 steps, then decays with the inverse square root of the step number.</li>
+</ol>
+<pre><code>Attention(Q, K, V) = softmax(Q K^T / sqrt(d_k)) V
+
+MultiHead(Q, K, V) = Concat(head_1, ..., head_h) W^O
+       where head_i = Attention(Q W_i^Q, K W_i^K, V W_i^V)
+
+d_model = 512    h = 8 heads    d_k = d_v = 512 / 8 = 64</code></pre>
+
+<h2>Section outline</h2>
+<ul>
+<li><a href="https://arxiv.org/html/1706.03762v7#S1"><strong>1. Introduction</strong></a> — why sequential computation is the constraint worth removing</li>
+<li><a href="https://arxiv.org/html/1706.03762v7#S2"><strong>2. Background</strong></a> — prior attempts (ByteNet, ConvS2S) reduced sequential work but left path length growing with distance</li>
+<li><a href="https://arxiv.org/html/1706.03762v7#S3"><strong>3. Model architecture</strong></a> — the 6-layer encoder and decoder stacks, residuals, and layer norm</li>
+<li><a href="https://arxiv.org/html/1706.03762v7#S3.SS2"><strong>3.2 Attention</strong></a> — scaled dot-product attention, why the scaling exists, and multi-head attention</li>
+<li><a href="https://arxiv.org/html/1706.03762v7#S3.SS2.SSS3"><strong>3.2.3 Applications of attention</strong></a> — the three places attention appears: encoder-decoder, encoder self-attention, masked decoder self-attention</li>
+<li><a href="https://arxiv.org/html/1706.03762v7#S3.SS3"><strong>3.3 Position-wise feed-forward networks</strong></a> — the per-position 512→2048→512 sub-layer</li>
+<li><a href="https://arxiv.org/html/1706.03762v7#S3.SS5"><strong>3.5 Positional encoding</strong></a> — sinusoids of geometrically spaced wavelengths, and the extrapolation argument for choosing them</li>
+<li><a href="https://arxiv.org/html/1706.03762v7#S4"><strong>4. Why self-attention</strong></a> — the complexity, parallelism, and path-length comparison against recurrent and convolutional layers</li>
+<li><a href="https://arxiv.org/html/1706.03762v7#S5"><strong>5. Training</strong></a> — WMT 2014 data, 8 P100 GPUs, Adam with warm-up, dropout and label smoothing</li>
+<li><a href="https://arxiv.org/html/1706.03762v7#S6.SS1"><strong>6.1 Machine translation results</strong></a> — 28.4 BLEU EN-DE and 41.8 EN-FR, at a fraction of prior training cost</li>
+<li><a href="https://arxiv.org/html/1706.03762v7#S6.SS2"><strong>6.2 Model variations</strong></a> — the ablation table: head count, key dimension, model size, dropout, positional encoding</li>
+<li><a href="https://arxiv.org/html/1706.03762v7#S6.SS3"><strong>6.3 English constituency parsing</strong></a> — evidence the architecture is not translation-specific</li>
+<li><a href="https://arxiv.org/html/1706.03762v7#S7"><strong>7. Conclusion</strong></a> — and the stated next steps: other modalities, restricted attention, less sequential generation</li>
+</ul>
+
+<h2>Going deeper</h2>
+<ul>
+<li><strong>The interpretability claim is asserted, not measured.</strong> The paper says attention heads "clearly learn different tasks" related to syntactic and semantic structure, supported only by inspecting attention maps. No metric, no held-out test. A decade of follow-up work has since argued both sides of whether attention weights explain anything.</li>
+<li><strong>The <em>n &lt; d</em> assumption aged into the field's central problem.</strong> Quadratic cost in sequence length was acceptable when sentences were short. Every later effort at long-context models is, in effect, an attack on the line in section 4 where that trade-off is waved through — and the paper itself names the fix (restricted attention over a neighbourhood) without evaluating it.</li>
+<li><strong>The results compare against ensembles inconsistently.</strong> The headline "over 2 BLEU" improvement is against prior work including ensembles, while the Transformer figure is a single model — a favourable framing for the authors, though the training-cost column makes the underlying efficiency case on its own.</li>
+<li><strong>Read next:</strong> the released code at <a href="https://github.com/tensorflow/tensor2tensor">tensorflow/tensor2tensor</a>, and then any paper on efficient or linear attention, all of which start from the complexity table in section 4.</li>
+</ul>
+    </article>
+    <footer>Noted from <a href="https://arxiv.org/abs/1706.03762">https://arxiv.org/abs/1706.03762</a> &middot; 2026-08-19</footer>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+  // The body arrives as a flat run of <h2>-delimited prose (SKILL.md's
+  // plain-HTML contract). Three jobs here, all progressive enhancement — with
+  // JS off the note still reads top to bottom:
+  //   1. group each <h2> and its siblings into a <section>
+  //   2. move the outline section into the rail as a numbered index
+  //   3. wire the sticky nav as a scroll-spy
+  var body = document.getElementById('body');
+  var index = document.getElementById('index');
+  var spy = document.getElementById('spy');
+  if (!body) return;
+
+  var OUTLINE_WORDS = /\b(outline|contents|esquema|guion|guión|indice|índice|contenido)\b/i;
+  var takeawayWords = /\b(takeaway|conclusion|conclusión|idea clave|lo esencial)\b/i;
+
+  function slug(text, i) {
+    var s = text.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    return s || 'section-' + i;
+  }
+
+  // An outline <li> is `<strong>heading</strong> — summary`, the heading only
+  // sometimes anchor-wrapped (SKILL.md: "when the page has stable anchors").
+  // Fold every child into one wrapper span so the li's own grid column stays
+  // a single cell regardless of how many nodes are inside it, then number the
+  // li itself — never the anchor, which may not exist.
+  function numberEntry(li, n) {
+    li.setAttribute('data-n', n < 10 ? '0' + n : String(n));
+    var row = document.createElement('span');
+    row.className = 'row';
+    while (li.firstChild) row.appendChild(li.firstChild);
+
+    var strong = row.querySelector('strong');
+    if (strong && strong.parentNode === row) {
+      // Trailing "— summary" text becomes its own muted line, matching the
+      // heading/gloss split used elsewhere in this note.
+      var sub = document.createElement('span');
+      sub.className = 'sub';
+      var after = strong.nextSibling;
+      while (after) { var nx = after.nextSibling; sub.appendChild(after); after = nx; }
+      sub.innerHTML = sub.innerHTML.replace(/^(\s|&nbsp;)*[—–-]\s*/, '');
+      row.appendChild(strong);
+      if (sub.textContent.trim()) row.appendChild(sub);
+    }
+    li.appendChild(row);
+  }
+
+  // 1. Group.
+  var groups = [];
+  var current = null;
+  Array.prototype.slice.call(body.children).forEach(function (node) {
+    if (node.tagName === 'H2') {
+      current = { label: node.textContent.trim(), nodes: [node] };
+      groups.push(current);
+    } else if (current) {
+      current.nodes.push(node);
+    }
+  });
+  if (!groups.length) return;
+
+  body.innerHTML = '';
+  var spied = [];
+  groups.forEach(function (group, i) {
+    var section = document.createElement('section');
+    group.nodes.forEach(function (n) { section.appendChild(n); });
+
+    if (index && OUTLINE_WORDS.test(group.label)) {
+      var items = section.querySelectorAll('li');
+      Array.prototype.forEach.call(items, function (li, j) { numberEntry(li, j + 1); });
+      index.appendChild(section);
+      return;
+    }
+
+    section.id = slug(group.label, i);
+    if (takeawayWords.test(group.label)) section.classList.add('is-takeaway');
+    body.appendChild(section);
+    spied.push(section);
+  });
+
+  // 3. Scroll-spy.
+  if (!spy || !spied.length) return;
+  spied.forEach(function (section) {
+    var h2 = section.querySelector('h2');
+    var a = document.createElement('a');
+    a.href = '#' + section.id;
+    a.textContent = h2 ? h2.textContent.trim() : section.id;
+    spy.appendChild(a);
+  });
+
+  var links = Array.prototype.slice.call(spy.children);
+  function mark(id) {
+    links.forEach(function (a) {
+      a.setAttribute('aria-current', a.getAttribute('href') === '#' + id ? 'true' : 'false');
+    });
+  }
+  mark(spied[0].id);
+
+  if (!('IntersectionObserver' in window)) return;
+  var visible = new Map();
+  var observer = new IntersectionObserver(function (entries) {
+    entries.forEach(function (entry) {
+      if (entry.isIntersecting) visible.set(entry.target.id, entry.boundingClientRect.top);
+      else visible.delete(entry.target.id);
+    });
+    var best = null;
+    spied.forEach(function (s) { if (best === null && visible.has(s.id)) best = s.id; });
+    if (best) mark(best);
+  }, { rootMargin: '-18% 0px -70% 0px', threshold: 0 });
+  spied.forEach(function (s) { observer.observe(s); });
+})();
+</script>
+</body>
+</html>
