@@ -35,10 +35,25 @@ captions attached. It returns none of that unasked, so don't drop this line.
 | canonical URL | the final URL after redirects |
 | body | the returned article Markdown |
 
+## Check you got the article, not a summary of it
+
+`WebFetch` answers a prompt against the page, so it will sometimes **paraphrase
+in the third person** however firmly you ask for verbatim text — short, terse
+posts are the usual trigger. The tell is prose about the author rather than by
+them: "Evans recommends…", "The author notes…", a tidy bulleted digest where
+the page had paragraphs, or a body far shorter than the page's own length.
+
+Retry **once**, explicitly forbidding the third person and asking for her actual
+sentences. If the second attempt is still a summary, **stop** — this is a
+failure, not a partial success. Notes written from a summary are a summary of a
+summary: they teach nothing the digest didn't, and nothing in the finished note
+will reveal that the source was never actually read.
+
 ## Failure
 
 Stop and say so — do not write notes from a stub — when the result is:
 
+- a **summary instead of the body**, after one retry (above)
 - a **paywall or consent wall**: a few hundred words ending in a subscribe prompt
 - a **JS shell**: nav and footer chrome with no article body
 - **visibly truncated**: cuts mid-sentence, or ends far earlier than the page's

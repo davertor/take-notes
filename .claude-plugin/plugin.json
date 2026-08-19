@@ -1,0 +1,26 @@
+{
+  "name": "take-notes",
+  "version": "1.0.0",
+  "description": "Turn a YouTube video, web article, arXiv paper, or GitHub repo into didactic study notes — executive summary, the one takeaway, key points, and a timestamped or sectioned outline — as a self-contained HTML page you keep, browse, and export.",
+  "author": {
+    "name": "Daniel Verdu",
+    "url": "https://github.com/davertor"
+  },
+  "homepage": "https://github.com/davertor/take-notes",
+  "repository": "https://github.com/davertor/take-notes",
+  "license": "MIT",
+  "keywords": [
+    "notes",
+    "study-notes",
+    "learning",
+    "youtube",
+    "transcript",
+    "article",
+    "arxiv",
+    "research",
+    "obsidian",
+    "anki",
+    "flashcards",
+    "html"
+  ]
+}

@@ -46,18 +46,26 @@ fi
 Pick **one** reference by looking at the source, Read it, and follow it. Only the
 acquisition differs; everything after Step 2 is identical for every source.
 
+Match **top to bottom and stop at the first row that fits** — arXiv and GitHub
+links are `http(s)` pages too, so the catch-all row would swallow them.
+
 | Source | Read |
 |---|---|
 | YouTube URL, any other video URL yt-dlp supports, or a local media file | `references/youtube.md` |
+| `arxiv.org` (or an `ar5iv` / arXiv DOI link) — a paper | `references/arxiv.md` |
+| `github.com/<owner>/<repo>` — a repository root, not a file, PR, or issue | `references/github.md` |
 | Any other `http(s)` page — blog post, docs page, news article | `references/web.md` |
 
 Each guide hands back the same thing, and nothing more:
 
 - **title**
-- **byline** — channel for video, author or site for an article
-- **span** — duration for video, publication date for an article
+- **byline** — channel for video, author or site for an article, the paper's
+  authors, the repo's owner
+- **span** — duration for video, publication date for an article, submission
+  date for a paper, latest release for a repo
 - **canonical URL** (plus the YouTube video ID when there is one)
-- **body** — the timestamped transcript, or the article text
+- **body** — the timestamped transcript, the article text, the paper full text,
+  or the README plus the repo's structure
 
 Video sources also hand back, when yt-dlp reports them: **channel URL**,
 **published** date, **views**, a **thumbnail** URL, and the **caption language**.

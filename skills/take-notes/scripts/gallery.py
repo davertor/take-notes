@@ -1,11 +1,9 @@
 #!/usr/bin/env -S uv run --script
 """Build a browsable gallery of every note in ~/take-notes/html_reports.
 
-Reads the notes themselves — no database, no sidecar index. Each rendered note
-already carries its own masthead (title, byline, meta line, source link,
-poster), so the gallery scrapes those few landmarks back out and lays them on
-cards. That keeps notes written before this script existed visible, and means
-nothing to keep in sync when a note is deleted by hand.
+Reads the notes themselves — no database, no sidecar index — through notes.py,
+which owns the parsing. That keeps notes written before this script existed
+visible, and means nothing to keep in sync when a note is deleted by hand.
 
     uv run gallery.py            # build ~/take-notes/gallery.html and open it
     uv run gallery.py --no-open
@@ -17,20 +15,17 @@ import datetime
 import html
 import json
 import os
-import re
 import sys
-import unicodedata
 import webbrowser
-from dataclasses import dataclass
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from notes import NOTES_DIR, Note, collect, fold, length_of  # noqa: E402
 
-NOTES_DIR = Path.home() / "take-notes" / "html_reports"
+
 DEFAULT_OUT = Path.home() / "take-notes" / "gallery.html"
 CONFIG_FILE = Path.home() / "take-notes" / "config.json"
 TEMPLATE_PATH = Path(__file__).resolve().parent.parent / "assets" / "gallery-template.html"
-
-EXCERPT_CHARS = 190
 
 # Whole phrases, like render.py's — see the note there on why these are not
 # assembled from translated fragments.
@@ -61,116 +56,13 @@ UI = {
     },
 }
 
-DATE_PREFIX = re.compile(r"^(\d{4}-\d{2}-\d{2})-")
-TAGS = re.compile(r"<[^>]+>")
-
-
-@dataclass(frozen=True)
-class Note:
-    """One rendered note, as much of it as the gallery needs."""
-
-    path: Path
-    title: str
-    byline: str
-    detail: str
-    excerpt: str
-    thumbnail: str
-    source: str
-    date: str
-    kind: str  # "video" | "article"
-
-
-def _text(fragment: str) -> str:
-    """Inner HTML to plain collapsed text."""
-    return re.sub(r"\s+", " ", html.unescape(TAGS.sub(" ", fragment))).strip()
-
-
-def _fold(text: str) -> str:
-    """Lowercase and strip accents, exactly as the template's filter JS does —
-    the two must agree or typing "andres" misses "Andrés"."""
-    decomposed = unicodedata.normalize("NFD", text.lower())
-    return "".join(ch for ch in decomposed if not unicodedata.combining(ch))
-
-
-def _length(detail: str) -> str:
-    """The one scannable number in a meta line: "11 min", "6 min read", "1 h 15 min"."""
-    for part in (p.strip() for p in detail.split("·")):
-        if re.search(r"\d+\s*(min|h)\b", part):
-            return part
-    return ""
-
-
-def _find(pattern: str, doc: str) -> str:
-    match = re.search(pattern, doc, re.DOTALL)
-    return match.group(1) if match else ""
-
-
-def _attr(pattern: str, doc: str) -> str:
-    """Attribute value, decoded — a note's URLs carry `&amp;` in the file and
-    would be double-escaped when written back onto a card."""
-    return html.unescape(_find(pattern, doc))
-
-
-def _excerpt(doc: str) -> str:
-    """First paragraph of the note body, trimmed on a word boundary."""
-    body = _find(r'<article id="body">(.*?)</article>', doc)
-    text = _text(_find(r"<p[^>]*>(.*?)</p>", body))
-    if len(text) <= EXCERPT_CHARS:
-        return text
-    cut = text[:EXCERPT_CHARS]
-    head, _, _ = cut.rpartition(" ")
-    return (head or cut).rstrip(",;:.—- ") + "…"
-
-
-def parse_note(path: Path, doc: str) -> Note:
-    """Pull the masthead back out of a rendered note.
-
-    The landmarks — .poster, .kicker, .meta, .watch — are the contract with
-    assets/template.html and assets/article-template.html. Change a class name
-    there and --selftest here fails, which is the point.
-    """
-    poster = _attr(r'<a class="poster" href="([^"]*)"', doc)
-    kicker = _text(_find(r'<span class="kicker">(.*?)</span>', doc))
-    meta = _text(_find(r'<p class="meta">(.*?)</p>', doc))
-
-    if kicker:  # article: byline lives in the kicker, meta is date · reading time
-        byline, detail = kicker, meta
-    else:       # video: meta leads with the (linked) channel
-        byline, _, detail = (part.strip() for part in meta.partition("·"))
-
-    date_match = DATE_PREFIX.match(path.name)
-    return Note(
-        path=path,
-        title=_text(_find(r"<title>(.*?)</title>", doc)) or path.stem,
-        byline=byline,
-        detail=detail,
-        excerpt=_excerpt(doc),
-        thumbnail=_attr(r'<a class="poster".*?<img src="([^"]*)"', doc),
-        source=poster or _attr(r'<a class="watch" href="([^"]*)"', doc),
-        date=date_match.group(1) if date_match else "",
-        kind="video" if poster else "article",
-    )
-
-
-def collect(notes_dir: Path) -> list[Note]:
-    """Every note in the directory, newest first."""
-    notes: list[Note] = []
-    for path in notes_dir.glob("*.html"):
-        try:
-            doc = path.read_text(encoding="utf-8")
-        except OSError:
-            continue
-        notes.append(parse_note(path, doc))
-    # Filename date first, mtime as the tiebreak for same-day notes.
-    return sorted(notes, key=lambda n: (n.date, n.path.stat().st_mtime), reverse=True)
-
 
 def card_html(note: Note, number: int, out_dir: Path, strings: dict[str, str]) -> str:
     href = html.escape(os.path.relpath(note.path, out_dir), quote=True)
-    search = html.escape(_fold(f"{note.title} {note.byline} {note.detail}"), quote=True)
+    search = html.escape(fold(f"{note.title} {note.byline} {note.detail}"), quote=True)
     # The full meta line is searchable but too long for a 17rem card: the foot
     # keeps the length and the filing date, the two things you scan a shelf by.
-    stamp = " &middot; ".join(html.escape(v) for v in (_length(note.detail), note.date) if v)
+    stamp = " &middot; ".join(html.escape(v) for v in (length_of(note.detail), note.date) if v)
 
     if note.thumbnail:
         plate = (
@@ -250,52 +142,31 @@ def config_lang() -> str:
 
 
 def _selftest() -> int:
-    sys.path.insert(0, str(Path(__file__).resolve().parent))
-    import render  # the templates this script parses are render.py's output
+    import render  # the templates notes.py parses are render.py's output
+    from notes import parse_note
 
     out_dir = Path("/tmp/take-notes")
     notes_dir = out_dir / "html_reports"
 
-    video_doc = render.build_video_document(
-        "5 > 3 & rising",
-        "<h2>Executive summary</h2><p>A &amp; B argue that markets rise.</p>",
-        byline="La Pizarra",
-        channel_url="https://youtube.com/@x",
-        span="11 min",
-        url="https://youtu.be/abc123",
-        video_id="abc123",
-        views="13.2K views",
-        today="2026-01-01",
+    video = parse_note(
+        notes_dir / "2026-08-18-rising.html",
+        render.build_video_document(
+            "5 > 3 & rising",
+            "<h2>Executive summary</h2><p>A &amp; B argue that markets rise.</p>",
+            byline="La Pizarra", channel_url="https://youtube.com/@x", span="11 min",
+            url="https://youtu.be/abc123", video_id="abc123", views="13.2K views",
+            today="2026-01-01",
+        ),
     )
-    video = parse_note(notes_dir / "2026-08-18-rising.html", video_doc)
-    assert video.kind == "video"
-    assert video.title == "5 > 3 & rising", video.title
-    assert video.byline == "La Pizarra", video.byline
-    assert video.detail == "11 min · 13.2K views", video.detail
-    assert video.thumbnail == "https://i.ytimg.com/vi/abc123/hqdefault.jpg"
-    assert video.source == "https://youtu.be/abc123"
-    assert video.date == "2026-08-18"
-    assert video.excerpt == "A & B argue that markets rise."
-
-    article_doc = render.build_article_document(
-        "Título ñ",
-        "<h2>Executive summary</h2><p>" + ("palabra " * 80) + "</p>",
-        byline="Sitio & Co",
-        span="Jan 1, 2026",
-        url="https://x.test/?a=1&b=2",
-        today="2026-01-01",
+    article = parse_note(
+        notes_dir / "2026-08-01-titulo.html",
+        render.build_article_document(
+            "Título ñ",
+            "<h2>Executive summary</h2><p>" + ("palabra " * 80) + "</p>",
+            byline="Sitio & Co", span="Jan 1, 2026", url="https://x.test/?a=1&b=2",
+            today="2026-01-01",
+        ),
     )
-    article = parse_note(notes_dir / "2026-08-01-titulo.html", article_doc)
-    assert article.kind == "article"
-    assert article.byline == "Sitio & Co", article.byline
-    assert article.detail.startswith("Jan 1, 2026 ·"), article.detail
-    assert article.thumbnail == ""
-    assert article.source == "https://x.test/?a=1&b=2"
-    assert len(article.excerpt) <= EXCERPT_CHARS + 1 and article.excerpt.endswith("…")
-
-    # A note with no masthead at all must degrade, not explode.
-    bare = parse_note(notes_dir / "stray.html", "<html><body><p>hi</p></body></html>")
-    assert bare.title == "stray" and bare.kind == "article" and bare.date == ""
 
     page = build_gallery([video, article], out_dir, notes_dir, today="2026-01-01")
     assert "{{" not in page
@@ -305,10 +176,6 @@ def _selftest() -> int:
     assert 'titulo n' in build_gallery([article], out_dir, notes_dir, today="2026-01-01"), (
         "accents are stripped from the haystack, matching the template's filter JS"
     )
-    assert _length("11 min · 16 ago 2026 · 13.2K visualizaciones") == "11 min"
-    assert _length("Jan 1, 2026 · 6 min read") == "6 min read"
-    assert _length("1 h 15 min · 2026") == "1 h 15 min"
-    assert _length("Jan 1, 2026") == ""
     assert ">02<" in page and "is-blank" in page, "the poster-less note gets a filing plate"
     assert "2 notes &middot; 2026-08-01 – 2026-08-18" in page
 

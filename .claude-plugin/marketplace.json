@@ -1,0 +1,24 @@
+{
+  "name": "take-notes",
+  "owner": {
+    "name": "Daniel Verdu",
+    "url": "https://github.com/davertor"
+  },
+  "metadata": {
+    "description": "Marketplace hosting the take-notes study-notes plugin."
+  },
+  "plugins": [
+    {
+      "name": "take-notes",
+      "description": "Turn a YouTube video, web article, arXiv paper, or GitHub repo into didactic study notes as a self-contained HTML page, kept in a browsable local archive.",
+      "version": "1.0.0",
+      "author": {
+        "name": "Daniel Verdu",
+        "url": "https://github.com/davertor"
+      },
+      "source": "./",
+      "category": "productivity",
+      "homepage": "https://github.com/davertor/take-notes"
+    }
+  ]
+}

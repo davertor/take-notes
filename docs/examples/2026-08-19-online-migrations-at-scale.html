@@ -1,0 +1,531 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Online migrations at scale</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,700;1,9..144,500&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,600;1,6..72,400&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* ---------------------------------------------------------------------------
+   Annotated offprint — the article variant. Same paper/ink/pen system as the
+   video template (assets/template.html); the rail differs because an article
+   has no thumbnail. A masthead kicker stands in for the poster, and the index
+   gutter carries a section number instead of a timestamp. Keep the two
+   templates in visual sync deliberately, but resist merging them: each stays
+   a self-contained file, so neither can break the other on edit.
+   --------------------------------------------------------------------------- */
+:root {
+  --paper:   #f7f3ea;
+  --surface: #f1ebdf;
+  --raised:  #e8e1d1;
+  --rule:    #d8d0be;
+  --ink:     #191511;
+  --ink-70:  #57503f;
+  --ink-45:  #6e6653;   /* AA on --paper at label sizes; do not lighten */
+  --pen:     #ab2f19;
+  --measure: 33rem;
+  --rail:    23rem;
+  --label:   7rem;
+  --frame:   49rem;
+  --sheet:   96rem;   /* caps rail+content as one unit on wide screens; see .sheet */
+  --grain:   .04;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --paper:   #17150f;
+    --surface: #1e1b15;
+    --raised:  #262218;
+    --rule:    #38332a;
+    --ink:     #efe8d8;
+    --ink-70:  #b3aa94;
+    --ink-45:  #8d8471;
+    --pen:     #f0765a;
+    --grain:   .07;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font: 400 1.0625rem/1.68 Newsreader, "Iowan Old Style", Georgia, serif;
+  font-optical-sizing: auto;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Paper grain: keeps large flat areas from reading as flat screen colour. */
+body::after {
+  content: ""; position: fixed; inset: 0; z-index: 9; pointer-events: none;
+  opacity: var(--grain);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='4'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+a { color: var(--pen); text-decoration-thickness: .5px; text-underline-offset: 3px; }
+strong { font-weight: 600; }
+p { margin: 0 0 1rem; }
+ul, ol { padding-left: 1.1rem; margin: 0 0 1rem; }
+li { margin: 0 0 .7rem; padding-left: .25rem; }
+li::marker { color: var(--pen); }
+code {
+  font: 400 .84em/1.5 "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  background: var(--raised); padding: .1em .38em; border-radius: 2px;
+}
+pre {
+  background: var(--raised); padding: 1rem 1.1rem; margin: 0 0 1rem;
+  border-left: 2px solid var(--rule); overflow-x: auto;
+  font-size: .84rem; line-height: 1.6;
+}
+pre code { background: none; padding: 0; }
+blockquote {
+  margin: 1.3rem 0; padding: .1rem 0 .1rem 1.25rem;
+  border-left: 2px solid var(--pen);
+  font-style: italic; color: var(--ink-70);
+}
+blockquote p:last-child { margin-bottom: 0; }
+table { border-collapse: collapse; width: 100%; font-size: .92rem; margin: 0 0 1rem; }
+th, td { text-align: left; padding: .5rem .7rem; border-bottom: 1px solid var(--rule); }
+th {
+  font: 500 .68rem/1 "JetBrains Mono", ui-monospace, monospace;
+  text-transform: uppercase; letter-spacing: .08em; color: var(--ink-70);
+}
+
+/* Figures pulled from the source article: framed like the rest of the offprint's
+   bordered surfaces, but never cropped — an arbitrary diagram forced into a
+   fixed aspect ratio can lose the part that made it worth keeping. */
+figure {
+  margin: 0 0 1.3rem; background: var(--raised); border: 1px solid var(--rule);
+}
+figure img { display: block; width: 100%; height: auto; }
+figcaption {
+  padding: .55rem .8rem;
+  font: 400 .78rem/1.5 "JetBrains Mono", ui-monospace, monospace;
+  color: var(--ink-70); border-top: 1px solid var(--rule);
+}
+
+/* --- Shell ---------------------------------------------------------------- */
+/* Cap the whole rail+content composition and centre it as one unit past
+   --sheet: growing --frame instead would stretch prose past a comfortable
+   line length, and letting only .column centre leaves the extra space
+   stranded to the right of the text with the rail pinned flush left. */
+.sheet {
+  display: flex; align-items: flex-start; min-height: 100vh;
+  max-width: var(--sheet); margin-inline: auto;
+}
+
+/* --- Rail ----------------------------------------------------------------- */
+.rail {
+  width: var(--rail); flex: 0 0 var(--rail);
+  position: sticky; top: 0; align-self: flex-start;
+  height: 100vh; overflow-y: auto; overscroll-behavior: contain;
+  padding: 2.25rem 1.75rem 2.5rem;
+  background: var(--surface);
+  border-right: 1px solid var(--rule);
+  scrollbar-width: thin; scrollbar-color: var(--rule) transparent;
+}
+
+/* Masthead kicker: stands in for the poster an article does not have — the
+   "who published this" identity, the way a print offprint names the journal
+   above the headline rather than illustrating it. */
+.kicker {
+  display: block; margin: 0 0 .9rem;
+  font: 500 .68rem/1.3 "JetBrains Mono", ui-monospace, monospace;
+  letter-spacing: .1em; text-transform: uppercase; color: var(--ink-45);
+}
+
+h1 {
+  font: 700 1.42rem/1.2 Fraunces, "Iowan Old Style", Georgia, serif;
+  font-variation-settings: "SOFT" 40, "WONK" 1;
+  letter-spacing: -.015em; margin: 0 0 .75rem; text-wrap: balance;
+}
+.meta {
+  font: 400 .72rem/1.7 "JetBrains Mono", ui-monospace, monospace;
+  color: var(--ink-70); margin: 0 0 1.15rem; text-wrap: pretty;
+}
+.meta a { color: inherit; text-decoration-color: var(--rule); }
+.meta a:hover { color: var(--pen); }
+.watch {
+  display: inline-flex; align-items: baseline; gap: .4rem;
+  font: 500 .68rem/1 "JetBrains Mono", ui-monospace, monospace;
+  letter-spacing: .07em; text-transform: uppercase;
+  color: var(--ink); text-decoration: none;
+  border-bottom: 1px solid var(--pen); padding-bottom: .32rem;
+  transition: color .2s ease, gap .2s ease;
+}
+.watch:hover { color: var(--pen); gap: .65rem; }
+.watch span { transition: transform .2s ease; }
+.watch:hover span { transform: translateX(2px); }
+
+/* Index: sequential marks instead of timestamps — an article has no clock to
+   annotate, so the gutter counts instead. */
+#index { margin-top: 2rem; }
+#index section { display: block; margin: 0; }         /* never the hung-label grid */
+#index h2 {
+  font: 500 .64rem/1 "JetBrains Mono", ui-monospace, monospace;
+  letter-spacing: .15em; text-transform: uppercase; color: var(--ink-45);
+  margin: 0 0 .35rem; padding: 0 0 .7rem;
+  border-bottom: 1px solid var(--rule);
+}
+#index ul { list-style: none; margin: 0; padding: 0; }
+#index li {
+  display: grid; grid-template-columns: 2.9rem minmax(0, 1fr); gap: .5rem;
+  align-items: baseline; margin: 0; padding: .55rem 0;
+  border-bottom: 1px solid transparent;
+}
+#index li::before {
+  content: attr(data-n);
+  font: 500 .66rem/1.6 "JetBrains Mono", ui-monospace, monospace;
+  color: var(--pen); letter-spacing: -.02em; font-variant-numeric: tabular-nums;
+}
+#index li > .row { min-width: 0; text-wrap: pretty; }
+#index li a { color: var(--ink); text-decoration: none; font-weight: 600; }
+#index li .sub { display: block; color: var(--ink-70); font: 400 .8rem/1.42 Newsreader, Georgia, serif; }
+#index li:hover { border-bottom-color: var(--rule); }
+#index li:hover a, #index li:hover > .row { color: var(--pen); }
+
+/* --- Reading column ------------------------------------------------------- */
+.column { flex: 1; min-width: 0; padding: 0 0 5rem; }
+
+.spybar {
+  position: sticky; top: 0; z-index: 8;
+  background: color-mix(in srgb, var(--paper) 90%, transparent);
+  backdrop-filter: blur(14px) saturate(1.3);
+  border-bottom: 1px solid var(--rule);
+}
+nav.spy {
+  display: flex; gap: 1.35rem; flex-wrap: nowrap;
+  max-width: var(--frame); margin-inline: auto;
+  padding: 1.1rem 3rem .95rem;
+  overflow-x: auto; scrollbar-width: none;
+}
+nav.spy::-webkit-scrollbar { display: none; }
+nav.spy a {
+  position: relative; text-decoration: none; white-space: nowrap;
+  font: 500 .64rem/1 "JetBrains Mono", ui-monospace, monospace;
+  letter-spacing: .09em; text-transform: uppercase;
+  color: var(--ink-70); padding-bottom: .4rem;
+  transition: color .25s ease;
+}
+nav.spy a::after {
+  content: ""; position: absolute; left: 0; bottom: 0; height: 2px;
+  width: 100%; background: var(--pen);
+  transform: scaleX(0); transform-origin: left; transition: transform .3s ease;
+}
+nav.spy a:hover { color: var(--ink); }
+nav.spy a[aria-current="true"] { color: var(--pen); }
+nav.spy a[aria-current="true"]::after { transform: scaleX(1); }
+
+article { max-width: var(--frame); margin-inline: auto; padding: 2.75rem 3rem 0; }
+
+#body > section {
+  display: grid;
+  grid-template-columns: var(--label) minmax(0, var(--measure));
+  gap: 0 2.25rem;
+  padding: 0 0 2.5rem; margin: 0 0 2.5rem;
+  border-bottom: 1px solid var(--rule);
+  scroll-margin-top: 4.5rem;
+}
+#body > section:last-child { border-bottom: none; margin-bottom: 0; }
+#body > section > h2 {
+  grid-column: 1; margin: .42rem 0 0;
+  position: sticky; top: 4.75rem; align-self: start;
+  font: 500 .66rem/1.45 "JetBrains Mono", ui-monospace, monospace;
+  letter-spacing: .1em; text-transform: uppercase;
+  color: var(--ink-45); text-align: right; hyphens: none;
+}
+#body > section > :not(h2) { grid-column: 2; }
+#body > section > :last-child { margin-bottom: 0; }
+#body > section > :last-child > li:last-child { margin-bottom: 0; }
+#body > section > h3 {
+  font: 600 1.08rem/1.35 Fraunces, Georgia, serif;
+  font-variation-settings: "SOFT" 30;
+  margin: 1.75rem 0 .55rem;
+}
+
+#body > section:first-of-type > p:first-of-type::first-letter {
+  float: left; line-height: .74; padding: .04em .09em 0 0;
+  font: 700 3.15em/1 Fraunces, Georgia, serif;
+  font-variation-settings: "SOFT" 0, "WONK" 1;
+  color: var(--pen);
+}
+
+#body > section.is-takeaway > p {
+  font: 400 1.16rem/1.5 Fraunces, Georgia, serif;
+  font-variation-settings: "SOFT" 50, "WONK" 1;
+  letter-spacing: -.005em; text-wrap: pretty;
+}
+#body > section.is-takeaway strong { font-weight: 500; }
+
+footer {
+  max-width: var(--frame); margin-inline: auto;
+  padding: 1.4rem 3rem 2.5rem;
+  border-top: 1px solid var(--rule);
+  font: 400 .7rem/1.7 "JetBrains Mono", ui-monospace, monospace;
+  color: var(--ink-45);
+}
+footer a { color: inherit; text-decoration-color: var(--rule); }
+
+/* --- Entrance: one orchestrated moment, then out of the way --------------- */
+@media (prefers-reduced-motion: no-preference) {
+  .rail > *, nav.spy, #body > section { animation: rise .6s cubic-bezier(.22,.61,.36,1) backwards; }
+  .kicker { animation-delay: .02s; }
+  h1 { animation-delay: .07s; }
+  .meta { animation-delay: .11s; }
+  .watch { animation-delay: .15s; }
+  #index { animation-delay: .19s; }
+  nav.spy { animation-delay: .08s; }
+  #body > section:nth-of-type(1) { animation-delay: .14s; }
+  #body > section:nth-of-type(2) { animation-delay: .19s; }
+  #body > section:nth-of-type(3) { animation-delay: .24s; }
+  #body > section:nth-of-type(n+4) { animation-delay: .29s; }
+}
+@keyframes rise { from { opacity: 0; transform: translateY(8px); } }
+
+/* --- Narrow --------------------------------------------------------------- */
+@media (max-width: 1180px) {
+  :root { --label: 5.5rem; }
+  article, nav.spy, footer { padding-left: 2rem; padding-right: 2rem; }
+}
+@media (max-width: 1000px) {
+  :root { --frame: 100%; }
+}
+@media (max-width: 1000px) {
+  #body > section { grid-template-columns: minmax(0, var(--measure)); gap: 0; }
+  #body > section > h2 { position: static; text-align: left; margin: 0 0 .85rem; }
+  #body > section > :not(h2) { grid-column: 1; }
+}
+@media (max-width: 860px) {
+  .sheet { display: block; }
+  .rail {
+    width: auto; height: auto; position: static;
+    border-right: none; border-bottom: 1px solid var(--rule);
+    padding: 1.75rem 2rem 2rem;
+  }
+  .rail > *, #index { max-width: 34rem; }
+  article { padding-top: 2rem; }
+}
+
+/* --- Print: it is a study note; it should print like one ------------------ */
+@media print {
+  :root {
+    --paper: #fff; --surface: #fff; --raised: #f4f4f4;
+    --ink: #000; --ink-70: #333; --ink-45: #555; --rule: #bbb; --pen: #000;
+  }
+  body::after, nav.spy, .watch { display: none; }
+  .sheet { display: block; }
+  .rail {
+    width: auto; height: auto; position: static; padding: 0 0 1.25rem;
+    border-right: none; border-bottom: 1pt solid #000; background: none;
+  }
+  article { padding: 1.25rem 0 0; }
+  #body > section { display: block; margin: 0 0 1.25rem; padding: 0 0 1.25rem; break-inside: avoid; }
+  #body > section > h2 { position: static; text-align: left; margin: 0 0 .5rem; }
+  #body > section:first-of-type > p:first-of-type::first-letter {
+    font-size: inherit; float: none; color: inherit; padding: 0;
+  }
+  figure { break-inside: avoid; }
+  body { font-size: 10.5pt; }
+  footer { padding: .8rem 0 0; }
+}
+</style>
+</head>
+<body>
+<div class="sheet">
+  <aside class="rail">
+    <span class="kicker">Jacqueline Xu · Stripe</span>
+    <h1>Online migrations at scale</h1>
+    <p class="meta">Feb 2, 2017 &middot; 6 min read</p>
+    <a class="watch" href="https://stripe.com/blog/online-migrations" target="_blank" rel="noopener">Open original <span>&#8594;</span></a>
+    <div id="index"></div>
+  </aside>
+
+  <div class="column">
+    <div class="spybar"><nav class="spy" id="spy" aria-label="Sections"></nav></div>
+    <article id="body">
+<h2>Executive summary</h2>
+<p>Stripe needed to move hundreds of millions of subscription records out of an array field on the Customer object and into a table of their own, without downtime and without a single inconsistent read. This post describes the four-phase <em>dual-writing</em> pattern they used: write to both stores, move reads to the new one, move writes to the new one, then delete the old data. The interesting content is not the pattern itself — which is widely known — but the two things that made it survivable at scale: doing the expensive "which objects still need migrating?" work offline on Hadoop snapshots instead of querying production, and using GitHub's Scientist library to run both code paths in production and alert on any disagreement before trusting the new one. The whole approach is built around never changing more than a few hundred lines at a time.</p>
+
+<h2>The one takeaway</h2>
+<p><strong>A large data migration is safe when every step is independently reversible and independently verifiable — dual-write, then dual-read-and-compare, then cut over — rather than attempting one large atomic change and hoping.</strong></p>
+
+<h2>Key points</h2>
+<ul>
+<li><strong>The scale problem is arithmetic, not engineering cleverness</strong> — at one second per object, a hundred million objects takes over three years sequentially. Any approach that processes records one at a time against the production database is dead on arrival, which is what forces the offline and parallel design that follows.</li>
+<li><strong>Uptime was a constraint, not a goal</strong> — Stripe performs infrastructure upgrades online rather than in maintenance windows, so the Subscriptions service had to stay at 100% throughout. That single decision rules out every simpler migration strategy.</li>
+<li><strong>The four phases exist to keep the two stores consistent at every moment</strong> — dual write, switch reads, switch writes, delete. At no point is there a state where one store holds truth the other lacks, which is what makes each phase safe to pause or reverse.</li>
+<li><strong>Backfilling is done lazily first, then swept</strong> — existing records are copied whenever they happen to be updated, so ordinary traffic does most of the work for free. Only what remains after that needs an explicit migration job.</li>
+<li><strong>Finding the records is the expensive part, so it happens offline</strong> — identifying every subscription needing migration would mean many queries against production. Instead they run MapReduce over database snapshots on a Hadoop cluster, producing a list of IDs with zero production impact.</li>
+<li><strong>Scientist turns "is this safe?" into a measurement</strong> — GitHub's library runs both the old and new read paths in production and alerts when the results differ, with errors in the experimental path isolated from the real response. Correctness is observed under real traffic rather than argued about in review.</li>
+<li><strong>Changing the write paths is the hard phase, not the read paths</strong> — subscription logic (updates, prorations, renewals) spanned thousands of lines across multiple services. Their mitigation is to isolate each code path into the smallest unit that can be changed and verified alone.</li>
+<li><strong>They made the old field impossible to use by accident</strong> — the <code>subscriptions</code> accessor is replaced with one that raises a hard error. Anything still reaching for the old model fails loudly instead of silently reading stale data.</li>
+<li><strong>Deletion is also incremental</strong> — the old array is emptied whenever a subscription is loaded, with a final Scalding job sweeping up whatever remains. The same lazy-then-sweep shape as the backfill, run in reverse.</li>
+</ul>
+
+<h2>Concepts</h2>
+<ul>
+<li><strong>Dual writing</strong> — writing every change to both the old and new stores during a migration, so neither goes stale and either can serve as the source of truth while you decide.</li>
+<li><strong>Backfill</strong> — copying the records that already existed before dual writing began. Dual writing handles the future; backfilling handles the past.</li>
+<li><strong>Scientist</strong> — GitHub's Ruby library for running an experimental code path alongside the real one in production, comparing results and reporting mismatches without affecting the response.</li>
+<li><strong>MapReduce / Scalding</strong> — the offline distributed-processing model, and the Scala library Stripe uses to write those jobs. Here it answers one question cheaply: which records still need migrating?</li>
+<li><strong>Lazy migration</strong> — copying a record when it happens to be touched by normal traffic, so the migration cost is spread across ordinary requests instead of concentrated in a batch job.</li>
+</ul>
+
+<h2>How it works</h2>
+<ol>
+<li>Create the new table. Begin writing every new subscription to both it and the old Customers table, ramping the duplicated percentage up slowly while watching production metrics.</li>
+<li>Copy existing records lazily — whenever a subscription is updated, write it to the new table too.</li>
+<li>Run a Scalding job over database snapshots to list every subscription still missing, migrate those in parallel, then re-run the job to confirm nothing is left.</li>
+<li>Wrap reads in a Scientist experiment reading from both tables and alerting on any mismatch. Once results agree consistently, switch reads to the new table.</li>
+<li>Reverse the write order — new table first, old table as the archive — then refactor each write path one small unit at a time, with Scientist still watching.</li>
+<li>Stop writing to the old store, make the old accessor raise, empty the array lazily, and sweep up the remainder with a final job.</li>
+</ol>
+<pre><code>class Customer
+  def subscriptions
+    Opus::Error.hard("Accessing subscriptions array on customer")
+  end
+end</code></pre>
+
+<h2>Section outline</h2>
+<ul>
+<li><strong>Why are migrations hard?</strong> — the three constraints: scale, uptime, and accuracy across a codebase that reads the table everywhere</li>
+<li><strong>A pattern for online migrations</strong> — the four-step dual-writing pattern stated up front</li>
+<li><strong>Our example migration: Subscriptions</strong> — how a single subscription field became an array and then became a problem</li>
+<li><strong>Part 1: Dual writing</strong> — ramping up duplicate writes, lazy copying, and the offline Hadoop backfill</li>
+<li><strong>Part 2: Changing all read paths</strong> — Scientist experiments comparing both tables under production traffic</li>
+<li><strong>Part 3: Changing all write paths</strong> — the hardest phase, and why it is done in the smallest possible units</li>
+<li><strong>Part 4: Removing old data</strong> — hard-failing the old accessor, lazy deletion, final sweep</li>
+<li><strong>Conclusion</strong> — the four practices they credit: phased strategy, offline processing, incrementalism, observability</li>
+</ul>
+
+<h2>Going deeper</h2>
+<ul>
+<li><strong>No numbers on how long it took.</strong> The post opens with the arithmetic that makes naive migration impossible, then never says how long the real one took, how much the dual writes cost in production latency, or how many Scientist mismatches were found. The pattern is well argued; its price is not reported.</li>
+<li><strong>The tooling assumptions are heavy.</strong> Snapshots in a Hadoop cluster and a mature experiment framework are what make this affordable. A team without offline snapshots faces the expensive-query problem the post sidesteps, and that constraint is not addressed.</li>
+<li><strong>It is from 2017 and the ecosystem moved.</strong> Scalding and this MapReduce workflow would likely be Spark or a warehouse query today, and Scientist has ports in most languages. The <em>shape</em> — dual write, compare under real traffic, cut over incrementally — is what aged well.</li>
+<li><strong>Try next:</strong> read <a href="https://github.com/github/scientist">github/scientist</a>'s README, which is short, and note how much of this post's safety comes from that one idea: run both paths, compare, and let production tell you whether you were right.</li>
+</ul>
+    </article>
+    <footer>Noted from <a href="https://stripe.com/blog/online-migrations">https://stripe.com/blog/online-migrations</a> &middot; 2026-08-19</footer>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+  // The body arrives as a flat run of <h2>-delimited prose (SKILL.md's
+  // plain-HTML contract). Three jobs here, all progressive enhancement — with
+  // JS off the note still reads top to bottom:
+  //   1. group each <h2> and its siblings into a <section>
+  //   2. move the outline section into the rail as a numbered index
+  //   3. wire the sticky nav as a scroll-spy
+  var body = document.getElementById('body');
+  var index = document.getElementById('index');
+  var spy = document.getElementById('spy');
+  if (!body) return;
+
+  var OUTLINE_WORDS = /\b(outline|contents|esquema|guion|guión|indice|índice|contenido)\b/i;
+  var takeawayWords = /\b(takeaway|conclusion|conclusión|idea clave|lo esencial)\b/i;
+
+  function slug(text, i) {
+    var s = text.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    return s || 'section-' + i;
+  }
+
+  // An outline <li> is `<strong>heading</strong> — summary`, the heading only
+  // sometimes anchor-wrapped (SKILL.md: "when the page has stable anchors").
+  // Fold every child into one wrapper span so the li's own grid column stays
+  // a single cell regardless of how many nodes are inside it, then number the
+  // li itself — never the anchor, which may not exist.
+  function numberEntry(li, n) {
+    li.setAttribute('data-n', n < 10 ? '0' + n : String(n));
+    var row = document.createElement('span');
+    row.className = 'row';
+    while (li.firstChild) row.appendChild(li.firstChild);
+
+    var strong = row.querySelector('strong');
+    if (strong && strong.parentNode === row) {
+      // Trailing "— summary" text becomes its own muted line, matching the
+      // heading/gloss split used elsewhere in this note.
+      var sub = document.createElement('span');
+      sub.className = 'sub';
+      var after = strong.nextSibling;
+      while (after) { var nx = after.nextSibling; sub.appendChild(after); after = nx; }
+      sub.innerHTML = sub.innerHTML.replace(/^(\s|&nbsp;)*[—–-]\s*/, '');
+      row.appendChild(strong);
+      if (sub.textContent.trim()) row.appendChild(sub);
+    }
+    li.appendChild(row);
+  }
+
+  // 1. Group.
+  var groups = [];
+  var current = null;
+  Array.prototype.slice.call(body.children).forEach(function (node) {
+    if (node.tagName === 'H2') {
+      current = { label: node.textContent.trim(), nodes: [node] };
+      groups.push(current);
+    } else if (current) {
+      current.nodes.push(node);
+    }
+  });
+  if (!groups.length) return;
+
+  body.innerHTML = '';
+  var spied = [];
+  groups.forEach(function (group, i) {
+    var section = document.createElement('section');
+    group.nodes.forEach(function (n) { section.appendChild(n); });
+
+    if (index && OUTLINE_WORDS.test(group.label)) {
+      var items = section.querySelectorAll('li');
+      Array.prototype.forEach.call(items, function (li, j) { numberEntry(li, j + 1); });
+      index.appendChild(section);
+      return;
+    }
+
+    section.id = slug(group.label, i);
+    if (takeawayWords.test(group.label)) section.classList.add('is-takeaway');
+    body.appendChild(section);
+    spied.push(section);
+  });
+
+  // 3. Scroll-spy.
+  if (!spy || !spied.length) return;
+  spied.forEach(function (section) {
+    var h2 = section.querySelector('h2');
+    var a = document.createElement('a');
+    a.href = '#' + section.id;
+    a.textContent = h2 ? h2.textContent.trim() : section.id;
+    spy.appendChild(a);
+  });
+
+  var links = Array.prototype.slice.call(spy.children);
+  function mark(id) {
+    links.forEach(function (a) {
+      a.setAttribute('aria-current', a.getAttribute('href') === '#' + id ? 'true' : 'false');
+    });
+  }
+  mark(spied[0].id);
+
+  if (!('IntersectionObserver' in window)) return;
+  var visible = new Map();
+  var observer = new IntersectionObserver(function (entries) {
+    entries.forEach(function (entry) {
+      if (entry.isIntersecting) visible.set(entry.target.id, entry.boundingClientRect.top);
+      else visible.delete(entry.target.id);
+    });
+    var best = null;
+    spied.forEach(function (s) { if (best === null && visible.has(s.id)) best = s.id; });
+    if (best) mark(best);
+  }, { rootMargin: '-18% 0px -70% 0px', threshold: 0 });
+  spied.forEach(function (s) { observer.observe(s); });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,566 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Transformers, the tech behind LLMs | Deep Learning Chapter 5</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,700;1,9..144,500&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,600;1,6..72,400&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* ---------------------------------------------------------------------------
+   Annotated offprint. Warm paper, ink text, and one vermillion accent used
+   only where a reader would reach for a red pen: timestamps, list markers,
+   the opening capital, the section you are currently in. Nothing else.
+   --------------------------------------------------------------------------- */
+:root {
+  --paper:   #f7f3ea;
+  --surface: #f1ebdf;
+  --raised:  #e8e1d1;
+  --rule:    #d8d0be;
+  --ink:     #191511;
+  --ink-70:  #57503f;
+  --ink-45:  #6e6653;   /* AA on --paper at label sizes; do not lighten */
+  --pen:     #ab2f19;
+  --measure: 33rem;
+  --rail:    23rem;
+  --label:   7rem;
+  --frame:   49rem;
+  --sheet:   96rem;   /* caps rail+content as one unit on wide screens; see .sheet */
+  --grain:   .04;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --paper:   #17150f;
+    --surface: #1e1b15;
+    --raised:  #262218;
+    --rule:    #38332a;
+    --ink:     #efe8d8;
+    --ink-70:  #b3aa94;
+    --ink-45:  #8d8471;
+    --pen:     #f0765a;
+    --grain:   .07;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font: 400 1.0625rem/1.68 Newsreader, "Iowan Old Style", Georgia, serif;
+  font-optical-sizing: auto;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Paper grain: keeps large flat areas from reading as flat screen colour. */
+body::after {
+  content: ""; position: fixed; inset: 0; z-index: 9; pointer-events: none;
+  opacity: var(--grain);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='4'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+a { color: var(--pen); text-decoration-thickness: .5px; text-underline-offset: 3px; }
+strong { font-weight: 600; }
+p { margin: 0 0 1rem; }
+ul, ol { padding-left: 1.1rem; margin: 0 0 1rem; }
+li { margin: 0 0 .7rem; padding-left: .25rem; }
+li::marker { color: var(--pen); }
+code {
+  font: 400 .84em/1.5 "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  background: var(--raised); padding: .1em .38em; border-radius: 2px;
+}
+pre {
+  background: var(--raised); padding: 1rem 1.1rem; margin: 0 0 1rem;
+  border-left: 2px solid var(--rule); overflow-x: auto;
+  font-size: .84rem; line-height: 1.6;
+}
+pre code { background: none; padding: 0; }
+blockquote {
+  margin: 1.3rem 0; padding: .1rem 0 .1rem 1.25rem;
+  border-left: 2px solid var(--pen);
+  font-style: italic; color: var(--ink-70);
+}
+blockquote p:last-child { margin-bottom: 0; }
+table { border-collapse: collapse; width: 100%; font-size: .92rem; margin: 0 0 1rem; }
+th, td { text-align: left; padding: .5rem .7rem; border-bottom: 1px solid var(--rule); }
+th {
+  font: 500 .68rem/1 "JetBrains Mono", ui-monospace, monospace;
+  text-transform: uppercase; letter-spacing: .08em; color: var(--ink-70);
+}
+
+/* --- Shell ---------------------------------------------------------------- */
+/* Cap the whole rail+content composition and centre it as one unit past
+   --sheet: growing --frame instead would stretch prose past a comfortable
+   line length, and letting only .column centre leaves the extra space
+   stranded to the right of the text with the rail pinned flush left. */
+.sheet {
+  display: flex; align-items: flex-start; min-height: 100vh;
+  max-width: var(--sheet); margin-inline: auto;
+}
+
+/* --- Rail ----------------------------------------------------------------- */
+.rail {
+  width: var(--rail); flex: 0 0 var(--rail);
+  position: sticky; top: 0; align-self: flex-start;
+  height: 100vh; overflow-y: auto; overscroll-behavior: contain;
+  padding: 2.25rem 1.75rem 2.5rem;
+  background: var(--surface);
+  border-right: 1px solid var(--rule);
+  scrollbar-width: thin; scrollbar-color: var(--rule) transparent;
+}
+.poster {
+  display: block; position: relative; margin: 0 0 1.35rem;
+  background: var(--raised); border: 1px solid var(--rule);
+}
+.poster img { width: 100%; display: block; aspect-ratio: 16 / 9; object-fit: cover; }
+.poster::after {
+  content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 40%;
+  background: linear-gradient(transparent, rgba(0,0,0,.55)); pointer-events: none;
+}
+.poster .cue {
+  position: absolute; left: 0; bottom: 0; z-index: 1;
+  display: inline-flex; align-items: center; gap: .35rem;
+  padding: .32rem .6rem;
+  background: var(--pen); color: #fff;
+  font: 500 .62rem/1 "JetBrains Mono", ui-monospace, monospace;
+  letter-spacing: .12em; text-transform: uppercase;
+}
+
+h1 {
+  font: 700 1.42rem/1.2 Fraunces, "Iowan Old Style", Georgia, serif;
+  font-variation-settings: "SOFT" 40, "WONK" 1;
+  letter-spacing: -.015em; margin: 0 0 .75rem; text-wrap: balance;
+}
+/* Facts stack rather than reflowing into orphans in a narrow rail. */
+.meta {
+  font: 400 .72rem/1.7 "JetBrains Mono", ui-monospace, monospace;
+  color: var(--ink-70); margin: 0 0 1.15rem; text-wrap: pretty;
+}
+.meta a { color: inherit; text-decoration-color: var(--rule); }
+.meta a:hover { color: var(--pen); }
+.watch {
+  display: inline-flex; align-items: baseline; gap: .4rem;
+  font: 500 .68rem/1 "JetBrains Mono", ui-monospace, monospace;
+  letter-spacing: .07em; text-transform: uppercase;
+  color: var(--ink); text-decoration: none;
+  border-bottom: 1px solid var(--pen); padding-bottom: .32rem;
+  transition: color .2s ease, gap .2s ease;
+}
+.watch:hover { color: var(--pen); gap: .65rem; }
+.watch span { transition: transform .2s ease; }
+.watch:hover span { transform: translateX(2px); }
+
+/* Index: a filmstrip. Timestamps are the annotation, topics get the room. */
+#index { margin-top: 2rem; }
+#index section { display: block; margin: 0; }         /* never the hung-label grid */
+#index h2 {
+  font: 500 .64rem/1 "JetBrains Mono", ui-monospace, monospace;
+  letter-spacing: .15em; text-transform: uppercase; color: var(--ink-45);
+  margin: 0 0 .35rem; padding: 0 0 .7rem;
+  border-bottom: 1px solid var(--rule);
+}
+#index ul { list-style: none; margin: 0; padding: 0; }
+#index li { margin: 0; padding: 0; border-bottom: 1px solid transparent; }
+#index li a {
+  display: grid; grid-template-columns: 2.9rem minmax(0, 1fr); gap: .5rem;
+  align-items: baseline;
+  padding: .55rem 0; text-decoration: none; color: var(--ink);
+  font: 400 .8rem/1.42 Newsreader, Georgia, serif;
+}
+#index li a::before {
+  content: attr(data-t);
+  font: 500 .66rem/1.6 "JetBrains Mono", ui-monospace, monospace;
+  color: var(--pen); letter-spacing: -.02em; font-variant-numeric: tabular-nums;
+}
+#index li a > span { min-width: 0; text-wrap: pretty; }
+#index li a strong { font-weight: 600; display: block; }
+#index li a .sub { display: block; color: var(--ink-70); }
+#index li:hover { border-bottom-color: var(--rule); }
+#index li:hover a { color: var(--pen); }
+#index li:not(:has(a[data-t])) {
+  padding: .55rem 0; font: 400 .8rem/1.42 Newsreader, Georgia, serif;
+}
+
+/* --- Reading column ------------------------------------------------------- */
+.column { flex: 1; min-width: 0; padding: 0 0 5rem; }
+
+/* Full-bleed bar, reading-width contents: the rule spans the column while the
+   labels stay aligned to the prose below. */
+.spybar {
+  position: sticky; top: 0; z-index: 8;
+  background: color-mix(in srgb, var(--paper) 90%, transparent);
+  backdrop-filter: blur(14px) saturate(1.3);
+  border-bottom: 1px solid var(--rule);
+}
+nav.spy {
+  display: flex; gap: 1.35rem; flex-wrap: nowrap;
+  max-width: var(--frame); margin-inline: auto;
+  padding: 1.1rem 3rem .95rem;
+  overflow-x: auto; scrollbar-width: none;
+}
+nav.spy::-webkit-scrollbar { display: none; }
+nav.spy a {
+  position: relative; text-decoration: none; white-space: nowrap;
+  font: 500 .64rem/1 "JetBrains Mono", ui-monospace, monospace;
+  letter-spacing: .09em; text-transform: uppercase;
+  color: var(--ink-70); padding-bottom: .4rem;
+  transition: color .25s ease;
+}
+nav.spy a::after {
+  content: ""; position: absolute; left: 0; bottom: 0; height: 2px;
+  width: 100%; background: var(--pen);
+  transform: scaleX(0); transform-origin: left; transition: transform .3s ease;
+}
+nav.spy a:hover { color: var(--ink); }
+nav.spy a[aria-current="true"] { color: var(--pen); }
+nav.spy a[aria-current="true"]::after { transform: scaleX(1); }
+
+article { max-width: var(--frame); margin-inline: auto; padding: 2.75rem 3rem 0; }
+
+/* Hung margin labels: the section name sits in the gutter so the prose keeps
+   an unbroken measure. Scoped to #body — the rail must never inherit this. */
+#body > section {
+  display: grid;
+  grid-template-columns: var(--label) minmax(0, var(--measure));
+  gap: 0 2.25rem;
+  padding: 0 0 2.5rem; margin: 0 0 2.5rem;
+  border-bottom: 1px solid var(--rule);
+  scroll-margin-top: 4.5rem;
+}
+#body > section:last-child { border-bottom: none; margin-bottom: 0; }
+#body > section > h2 {
+  grid-column: 1; margin: .42rem 0 0;
+  position: sticky; top: 4.75rem; align-self: start;
+  font: 500 .66rem/1.45 "JetBrains Mono", ui-monospace, monospace;
+  letter-spacing: .1em; text-transform: uppercase;
+  color: var(--ink-45); text-align: right; hyphens: none;
+}
+#body > section > :not(h2) { grid-column: 2; }
+#body > section > :last-child { margin-bottom: 0; }
+#body > section > :last-child > li:last-child { margin-bottom: 0; }
+#body > section > h3 {
+  font: 600 1.08rem/1.35 Fraunces, Georgia, serif;
+  font-variation-settings: "SOFT" 30;
+  margin: 1.75rem 0 .55rem;
+}
+
+/* The lede opens with a raised capital. */
+#body > section:first-of-type > p:first-of-type::first-letter {
+  float: left; line-height: .74; padding: .04em .09em 0 0;
+  font: 700 3.15em/1 Fraunces, Georgia, serif;
+  font-variation-settings: "SOFT" 0, "WONK" 1;
+  color: var(--pen);
+}
+
+/* The takeaway is the one thing to remember — set it apart. */
+#body > section.is-takeaway > p {
+  font: 400 1.16rem/1.5 Fraunces, Georgia, serif;
+  font-variation-settings: "SOFT" 50, "WONK" 1;
+  letter-spacing: -.005em; text-wrap: pretty;
+}
+#body > section.is-takeaway strong { font-weight: 500; }
+
+footer {
+  max-width: var(--frame); margin-inline: auto;
+  padding: 1.4rem 3rem 2.5rem;
+  border-top: 1px solid var(--rule);
+  font: 400 .7rem/1.7 "JetBrains Mono", ui-monospace, monospace;
+  color: var(--ink-45);
+}
+footer a { color: inherit; text-decoration-color: var(--rule); }
+
+/* --- Entrance: one orchestrated moment, then out of the way --------------- */
+@media (prefers-reduced-motion: no-preference) {
+  .rail > *, nav.spy, #body > section { animation: rise .6s cubic-bezier(.22,.61,.36,1) backwards; }
+  .poster { animation-delay: .02s; }
+  h1 { animation-delay: .07s; }
+  .meta { animation-delay: .11s; }
+  .watch { animation-delay: .15s; }
+  #index { animation-delay: .19s; }
+  nav.spy { animation-delay: .08s; }
+  #body > section:nth-of-type(1) { animation-delay: .14s; }
+  #body > section:nth-of-type(2) { animation-delay: .19s; }
+  #body > section:nth-of-type(3) { animation-delay: .24s; }
+  #body > section:nth-of-type(n+4) { animation-delay: .29s; }
+}
+@keyframes rise { from { opacity: 0; transform: translateY(8px); } }
+
+/* --- Narrow --------------------------------------------------------------- */
+@media (max-width: 1180px) {
+  :root { --label: 5.5rem; }
+  article, nav.spy, footer { padding-left: 2rem; padding-right: 2rem; }
+}
+@media (max-width: 1000px) {
+  :root { --frame: 100%; }
+}
+@media (max-width: 1000px) {
+  #body > section { grid-template-columns: minmax(0, var(--measure)); gap: 0; }
+  #body > section > h2 { position: static; text-align: left; margin: 0 0 .85rem; }
+  #body > section > :not(h2) { grid-column: 1; }
+}
+@media (max-width: 860px) {
+  .sheet { display: block; }
+  .rail {
+    width: auto; height: auto; position: static;
+    border-right: none; border-bottom: 1px solid var(--rule);
+    padding: 1.75rem 2rem 2rem;
+  }
+  .rail > *, #index { max-width: 34rem; }
+  .poster { max-width: 24rem; }
+  article { padding-top: 2rem; }
+}
+
+/* --- Print: it is a study note; it should print like one ------------------ */
+@media print {
+  :root {
+    --paper: #fff; --surface: #fff; --raised: #f4f4f4;
+    --ink: #000; --ink-70: #333; --ink-45: #555; --rule: #bbb; --pen: #000;
+  }
+  body::after, nav.spy, .poster, .watch { display: none; }
+  .sheet { display: block; }
+  .rail {
+    width: auto; height: auto; position: static; padding: 0 0 1.25rem;
+    border-right: none; border-bottom: 1pt solid #000; background: none;
+  }
+  article { padding: 1.25rem 0 0; }
+  #body > section { display: block; margin: 0 0 1.25rem; padding: 0 0 1.25rem; break-inside: avoid; }
+  #body > section > h2 { position: static; text-align: left; margin: 0 0 .5rem; }
+  #body > section:first-of-type > p:first-of-type::first-letter {
+    font-size: inherit; float: none; color: inherit; padding: 0;
+  }
+  body { font-size: 10.5pt; }
+  footer { padding: .8rem 0 0; }
+}
+</style>
+</head>
+<body>
+<div class="sheet">
+  <aside class="rail">
+    <a class="poster" href="https://www.youtube.com/watch?v=wjZofJX0v4M" target="_blank" rel="noopener">
+      <img src="https://i.ytimg.com/vi/wjZofJX0v4M/maxresdefault.jpg" alt="" loading="lazy">
+      <span class="cue">Watch</span>
+    </a>
+    <h1>Transformers, the tech behind LLMs | Deep Learning Chapter 5</h1>
+    <p class="meta"><a href="https://www.youtube.com/channel/UCYO_jab_esuFRV4b17AJtAw">3Blue1Brown</a> &middot; 27 min &middot; Apr 1, 2024 &middot; 10.9M views</p>
+    <a class="watch" href="https://www.youtube.com/watch?v=wjZofJX0v4M" target="_blank" rel="noopener">Open original <span>&#8594;</span></a>
+    <div id="index"></div>
+  </aside>
+
+  <div class="column">
+    <div class="spybar"><nav class="spy" id="spy" aria-label="Sections"></nav></div>
+    <article id="body">
+<h2>Executive summary</h2>
+<p>This is the foundations chapter of 3Blue1Brown's transformer series: it deliberately stops short of the attention mechanism and instead builds the vocabulary you need to understand it. The through-line is that a language model is a next-token prediction machine, and that generating text is just running that prediction in a loop — sample a token, append it, predict again. Along the way it establishes the three ideas the next chapter depends on: words become vectors whose <em>directions</em> carry meaning, dot products measure how well two directions align, and essentially every computation in the network is a matrix-vector multiplication where one side is learned weights and the other is the data flowing through. It uses GPT-3's published numbers throughout — 175 billion parameters, 12,288 embedding dimensions, a 50,257-token vocabulary — and tallies them as it goes.</p>
+
+<h2>The one takeaway</h2>
+<p><strong>A transformer does not "understand" a sentence and then answer it — it repeatedly nudges a list of vectors so that each one absorbs meaning from its context, and the only thing it ever actually outputs is a probability distribution over the next token.</strong></p>
+
+<h2>Key points</h2>
+<ul>
+<li><strong>Generation is prediction run in a loop</strong> — the model only ever answers "what comes next?". Text appears because you sample from that answer, append it to the input, and ask again. Nothing in the architecture is doing anything more goal-directed than that.</li>
+<li><strong>Scale, not architecture, separated the demo from the product</strong> — the same basic model producing incoherent output as GPT-2 produces a sensible story as GPT-3. The video shows both running on the same seed text, which is a more honest demonstration of what scaling bought than any benchmark table.</li>
+<li><strong>Keep weights and data separate in your head</strong> — weights are learned during training and are the same for every run; the data is whatever you typed. The video colours them differently on purpose, because the single most common confusion is treating the billions of parameters as if they were storing your input.</li>
+<li><strong>Meaning lives in directions, not positions</strong> — training settles on embeddings where a direction in the space corresponds to something semantic. Subtracting <em>man</em> from <em>woman</em> gives roughly the same vector as subtracting <em>king</em> from <em>queen</em>, because a "gender" direction turned out to be useful to encode.</li>
+<li><strong>The dot product is how the model asks "how much of this direction?"</strong> — positive when two vectors align, zero when perpendicular, negative when opposed. The video demonstrates it measurably: dotting a "plurality" direction against singular and plural nouns consistently scores the plurals higher, and dotting it against <em>one, two, three</em> gives increasing values.</li>
+<li><strong>A token's vector is supposed to stop being about that token</strong> — a vector that starts as the embedding of <em>king</em> should, by the final layer, encode that this was a king in Scotland who murdered his predecessor and is being described in Shakespearean language. Absorbing context is the network's entire job.</li>
+<li><strong>Context size is a hard architectural wall, not a tuning choice</strong> — GPT-3 processes exactly 2,048 vectors at a time. This is the concrete reason early chatbots seemed to lose the thread in long conversations: material outside the window is not being weighed weakly, it is not there at all.</li>
+<li><strong>Only the last vector produces the answer — at inference</strong> — the final vector is mapped by the unembedding matrix to 50,257 values, one per token. Every other vector in that layer is ignored at generation time, but during training all of them predict simultaneously, which is what makes training efficient enough to be worth doing.</li>
+<li><strong>Temperature is a knob on the softmax, not on creativity</strong> — dividing the exponents by a constant T flattens or sharpens the distribution. T=0 always picks the most likely token and produces, in the video's demonstration, a derivative retelling of Goldilocks; higher T starts original and degenerates into nonsense.</li>
+</ul>
+
+<h2>Concepts</h2>
+<ul>
+<li><strong>Token</strong> — the chunk the input is split into: usually a word, part of a word, or a common character combination. GPT-3's vocabulary is 50,257 of them.</li>
+<li><strong>Embedding matrix (W<sub>E</sub>)</strong> — one column per vocabulary token, holding the vector that token starts as. At 50,257 × 12,288 it accounts for about 617 million of GPT-3's parameters.</li>
+<li><strong>Unembedding matrix (W<sub>U</sub>)</strong> — the mirror image at the other end, mapping the final vector back to one score per vocabulary token. Another ~617 million parameters.</li>
+<li><strong>Logits</strong> — those raw, unnormalised scores, before softmax turns them into probabilities.</li>
+<li><strong>Softmax</strong> — exponentiate every value, then divide by the total. Turns any list of numbers into a distribution summing to 1, where the largest input dominates but nearby values still get real weight.</li>
+<li><strong>Context size</strong> — how many vectors the network can hold at once; 2,048 for GPT-3.</li>
+</ul>
+
+<h2>Timestamped outline</h2>
+<ul>
+<li><a href="https://youtu.be/wjZofJX0v4M?t=0s">0:00</a> — <strong>What "GPT" actually stands for</strong> — generative, pretrained, and the word that matters: transformer</li>
+<li><a href="https://youtu.be/wjZofJX0v4M?t=95s">1:35</a> — <strong>Prediction and sampling as the generation loop</strong> — GPT-2 versus GPT-3 on the same seed text, and what scale changed</li>
+<li><a href="https://youtu.be/wjZofJX0v4M?t=183s">3:03</a> — <strong>The high-level flow</strong> — tokens to vectors, attention blocks, multi-layer perceptrons, repeat</li>
+<li><a href="https://youtu.be/wjZofJX0v4M?t=365s">6:05</a> — <strong>From autocomplete to chatbot</strong> — the system prompt as a framing device around a prediction model</li>
+<li><a href="https://youtu.be/wjZofJX0v4M?t=432s">7:12</a> — <strong>Background: what deep learning actually is</strong> — tunable parameters fitted to data, from linear regression up to 175 billion weights</li>
+<li><a href="https://youtu.be/wjZofJX0v4M?t=581s">9:41</a> — <strong>Why the format is constrained</strong> — everything as tensors and weighted sums, so backpropagation can scale</li>
+<li><a href="https://youtu.be/wjZofJX0v4M?t=707s">11:47</a> — <strong>Weights versus data</strong> — the distinction the rest of the series depends on</li>
+<li><a href="https://youtu.be/wjZofJX0v4M?t=747s">12:27</a> — <strong>Tokens and the embedding matrix</strong> — one column per token, values learned from scratch</li>
+<li><a href="https://youtu.be/wjZofJX0v4M?t=816s">13:36</a> — <strong>Embeddings as geometry</strong> — 12,288 dimensions, and why having many distinct directions matters</li>
+<li><a href="https://youtu.be/wjZofJX0v4M?t=898s">14:58</a> — <strong>Directions carry meaning</strong> — king/queen, Italy/Germany, and the caveat that the classic example is shakier than it looks</li>
+<li><a href="https://youtu.be/wjZofJX0v4M?t=994s">16:34</a> — <strong>Dot products measure alignment</strong> — the plurality-direction experiment</li>
+<li><a href="https://youtu.be/wjZofJX0v4M?t=1105s">18:25</a> — <strong>Vectors soak up context</strong> — from "king" the word to "king" the character in this specific sentence</li>
+<li><a href="https://youtu.be/wjZofJX0v4M?t=1189s">19:49</a> — <strong>Context size</strong> — 2,048 vectors, and why long conversations used to drift</li>
+<li><a href="https://youtu.be/wjZofJX0v4M?t=1223s">20:23</a> — <strong>The unembedding step</strong> — mapping the last vector to 50,257 logits</li>
+<li><a href="https://youtu.be/wjZofJX0v4M?t=1342s">22:22</a> — <strong>Softmax and temperature</strong> — how a list of numbers becomes a distribution, and what T does to it</li>
+<li><a href="https://youtu.be/wjZofJX0v4M?t=1563s">26:03</a> — <strong>What this sets up</strong> — the four intuitions the attention chapter will assume</li>
+</ul>
+
+<h2>How it works</h2>
+<ol>
+<li>Split the input into tokens, and look each one up in the embedding matrix to get a 12,288-dimensional vector.</li>
+<li>Pass the sequence through an attention block, where vectors exchange information and update each other — this is what makes "model" in <em>machine learning model</em> mean something different from "model" in <em>fashion model</em>.</li>
+<li>Pass them through a multi-layer perceptron block, where every vector goes through the same operation independently and in parallel.</li>
+<li>Alternate those two blocks many times over.</li>
+<li>Take the final vector, multiply by the unembedding matrix to get 50,257 logits, and softmax them into a probability distribution.</li>
+<li>Sample a token from that distribution, append it to the input, and go back to step 1.</li>
+</ol>
+
+<h2>Going deeper</h2>
+<ul>
+<li><strong>This chapter deliberately does not explain attention.</strong> It is the wax-on-wax-off episode, in its own words. If you came for the attention mechanism itself, this is prerequisite material and the payoff is in the next chapter.</li>
+<li><strong>The numbers are GPT-3's because newer ones are secret.</strong> The video says so plainly: companies keep tighter lips about current models. So the 175 billion parameters and 2,048-token context are illustrative of the architecture, not of anything you are using today — context windows in particular are now orders of magnitude larger.</li>
+<li><strong>The word-arithmetic examples are partly walked back as they are presented.</strong> The video admits the true embedding of <em>queen</em> sits farther from <em>king + (woman − man)</em> than the classic story implies, and that family relations demonstrated the effect better. Worth registering: these analogies are selected demonstrations from a small non-transformer model, not measured properties of GPT-3's embeddings.</li>
+<li><strong>Unanswered here:</strong> how attention actually decides which words are relevant to which, what the multi-layer perceptron blocks are storing, and how training works at all. All three are named as later chapters.</li>
+<li><strong>Read alongside:</strong> the original paper, <a href="https://arxiv.org/abs/1706.03762">Attention Is All You Need</a> — this video is the intuition, that paper is the specification, and they cover the same machine from opposite ends.</li>
+</ul>
+    </article>
+    <footer>Noted from <a href="https://www.youtube.com/watch?v=wjZofJX0v4M">https://www.youtube.com/watch?v=wjZofJX0v4M</a> &middot; 2026-08-19</footer>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+  // The body arrives as a flat run of <h2>-delimited prose (SKILL.md's
+  // plain-HTML contract). Three jobs here, all progressive enhancement — with
+  // JS off the note still reads top to bottom:
+  //   1. group each <h2> and its siblings into a <section>
+  //   2. move the outline section into the rail as an index
+  //   3. wire the sticky nav as a scroll-spy
+  var body = document.getElementById('body');
+  var index = document.getElementById('index');
+  var spy = document.getElementById('spy');
+  if (!body) return;
+
+  // Match the outline in either language the skill writes, and fall back to
+  // structure: a list whose links carry ?t= is an outline whatever it is called.
+  var OUTLINE_WORDS = /\b(outline|contents|esquema|guion|guión|indice|índice|contenido)\b/i;
+  var takeawayWords = /\b(takeaway|conclusion|conclusión|idea clave|lo esencial)\b/i;
+
+  function isOutline(label, nodes) {
+    if (OUTLINE_WORDS.test(label)) return true;
+    return nodes.some(function (n) {
+      if (typeof n.querySelectorAll !== 'function') return false;
+      var links = n.querySelectorAll('a[href*="t="]');
+      return links.length >= 2;
+    });
+  }
+
+  function slug(text, i) {
+    var s = text.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    return s || 'section-' + i;
+  }
+
+  // Outline row -> two cells: the timestamp lifted into a data attribute (CSS
+  // sets it in the gutter) and everything else folded into ONE span, because
+  // the anchor is a grid container and loose text nodes would each become
+  // their own cell.
+  function reflowEntry(a) {
+    var li = a.parentNode;
+    var stamp = a.textContent.trim();
+    if (!/^\d{1,2}(:\d{2}){1,2}$/.test(stamp)) return;
+    a.setAttribute('data-t', stamp);
+
+    var topic = document.createElement('span');
+    var sib = a.nextSibling;
+    while (sib) {
+      var next = sib.nextSibling;
+      topic.appendChild(sib);
+      sib = next;
+    }
+    topic.innerHTML = topic.innerHTML.replace(/^(\s|&nbsp;)*[—–-]\s*/, '');
+
+    // Demote the trailing gloss to its own muted line. It arrives as a bare
+    // text node, so CSS alone cannot reach it.
+    var strong = topic.querySelector('strong');
+    if (strong) {
+      var sub = document.createElement('span');
+      sub.className = 'sub';
+      var after = strong.nextSibling;
+      while (after) { var nx = after.nextSibling; sub.appendChild(after); after = nx; }
+      sub.innerHTML = sub.innerHTML.replace(/^(\s|&nbsp;)*[—–-]\s*/, '');
+      if (sub.textContent.trim()) topic.appendChild(sub);
+    }
+
+    a.textContent = '';
+    a.appendChild(topic);
+    while (li.firstChild !== a) li.removeChild(li.firstChild);
+  }
+
+  // 1. Group.
+  var groups = [];
+  var current = null;
+  Array.prototype.slice.call(body.children).forEach(function (node) {
+    if (node.tagName === 'H2') {
+      current = { label: node.textContent.trim(), nodes: [node] };
+      groups.push(current);
+    } else if (current) {
+      current.nodes.push(node);
+    }
+  });
+  if (!groups.length) return;
+
+  body.innerHTML = '';
+  var spied = [];
+  groups.forEach(function (group, i) {
+    var section = document.createElement('section');
+    group.nodes.forEach(function (n) { section.appendChild(n); });
+
+    if (index && isOutline(group.label, group.nodes)) {
+      Array.prototype.slice
+        .call(section.querySelectorAll('li > a:first-child'))
+        .forEach(reflowEntry);
+      index.appendChild(section);
+      return;
+    }
+
+    section.id = slug(group.label, i);
+    if (takeawayWords.test(group.label)) section.classList.add('is-takeaway');
+    body.appendChild(section);
+    spied.push(section);
+  });
+
+  // 3. Scroll-spy.
+  if (!spy || !spied.length) return;
+  spied.forEach(function (section) {
+    var h2 = section.querySelector('h2');
+    var a = document.createElement('a');
+    a.href = '#' + section.id;
+    a.textContent = h2 ? h2.textContent.trim() : section.id;
+    spy.appendChild(a);
+  });
+
+  var links = Array.prototype.slice.call(spy.children);
+  function mark(id) {
+    links.forEach(function (a) {
+      a.setAttribute('aria-current', a.getAttribute('href') === '#' + id ? 'true' : 'false');
+    });
+  }
+  mark(spied[0].id);
+
+  if (!('IntersectionObserver' in window)) return;
+  var visible = new Map();
+  var observer = new IntersectionObserver(function (entries) {
+    entries.forEach(function (entry) {
+      if (entry.isIntersecting) visible.set(entry.target.id, entry.boundingClientRect.top);
+      else visible.delete(entry.target.id);
+    });
+    // Topmost visible section wins; keep the last mark when nothing qualifies
+    // (e.g. mid-scroll through one very long section).
+    var best = null;
+    spied.forEach(function (s) { if (best === null && visible.has(s.id)) best = s.id; });
+    if (best) mark(best);
+  }, { rootMargin: '-18% 0px -70% 0px', threshold: 0 });
+  spied.forEach(function (s) { observer.observe(s); });
+})();
+</script>
+</body>
+</html>
