@@ -140,8 +140,8 @@ per note, newest first, poster for videos and a filing plate for articles,
 with a filter box (`/` focuses it, `Esc` clears it). Then it opens it.
 
 <p align="center">
-<a href="docs/gallery.png"><img src="docs/gallery.png" width="760" alt="Gallery — a grid of note cards, posters for videos and numbered filing plates for articles, above a filter bar"></a>
-<br><sub><b>The gallery</b> — a page built by <code>gallery.py</code>, filled with a <b>sample archive</b>: the eight notes, their sources, and the poster art are invented, unlike the two note screenshots above.</sub>
+<a href="docs/gallery.png"><img src="docs/gallery.png" width="820" alt="Gallery — a grid of note cards, a poster for the video note and numbered filing plates for the articles, above a filter bar"></a>
+<br><sub><b>The gallery</b> — the four notes in <a href="docs/examples"><code>docs/examples/</code></a>, every one of them real output. Browse them at <a href="https://davertor.github.io/take-notes/">davertor.github.io/take-notes</a>.</sub>
 </p>
 
 ```sh
