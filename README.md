@@ -1,4 +1,11 @@
 <p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/hero-dark.png">
+    <img src="docs/hero-light.png" width="900" alt="take·notes — turns a video, article, paper, or repo into didactic study notes, one self-contained HTML page you keep. Claude Code, Codex, Cursor, OpenCode, Gemini CLI.">
+  </picture>
+</p>
+
+<p align="center">
   <strong>English</strong> · <a href="./README.es.md">Español</a>
 </p>
 
@@ -17,10 +24,6 @@ HTML page — executive summary, the one takeaway, key points, and a timestamped
 or sectioned outline — written to `~/take-notes/html_reports/` and opened in
 your browser. They pile up into a browsable archive you own, on your disk, in
 plain HTML that will still open in ten years.
-
-<p align="center">
-  <img src="docs/article-note.png" width="820" alt="A rendered article note: rail with byline kicker and numbered index on the left, scroll-spy sections and drop-capped prose on the right">
-</p>
 
 Works in **Claude Code, Codex, Cursor, OpenCode, and Gemini CLI** — one
 `SKILL.md`, no per-tool variants. Every script is stdlib-only Python run through
