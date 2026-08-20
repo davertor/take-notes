@@ -131,7 +131,7 @@ grid to that tag, click it again to clear. Chip and text filter combine.
 
 <p align="center">
 <a href="docs/gallery.png"><img src="docs/gallery.png" width="820" alt="Gallery — a grid of note cards, a poster for the video note and numbered filing plates for the articles, above a filter bar"></a>
-<br><sub><b>The gallery</b> — the four notes in <a href="docs/examples"><code>docs/examples/</code></a>, every one of them real output. Browse them at <a href="https://davertor.github.io/take-notes/">davertor.github.io/take-notes</a>.</sub>
+<br><sub><b>The gallery</b> — the four notes in <a href="docs/examples"><code>docs/examples/</code></a>, every one of them real output. Clone the repo and open any of them to see a note in full.</sub>
 </p>
 
 ```sh
