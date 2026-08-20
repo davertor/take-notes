@@ -58,13 +58,13 @@ UI = {
 
 
 def tags_of(note: Note) -> tuple[str, ...]:
-    """Every tag on a note, DEFAULT_TAG standing in when it has none.
+    """Every tag on a note — empty when it has none.
 
-    Notes written before tagging existed have no tag row at all; filing them
-    under DEFAULT_TAG here keeps them reachable from a chip instead of
-    invisible to every filter but the text one.
+    DEFAULT_TAG never appears here: render.py already leaves it out of the
+    rendered tag row (see tags_html), so an untagged note is simply absent
+    from every chip rather than filed under a fake one.
     """
-    return note.tags or (DEFAULT_TAG,)
+    return note.tags
 
 
 def card_html(note: Note, number: int, out_dir: Path, strings: dict[str, str]) -> str:
@@ -99,8 +99,13 @@ def card_html(note: Note, number: int, out_dir: Path, strings: dict[str, str]) -
         parts.append(f'<span class="excerpt">{html.escape(note.excerpt)}</span>')
     parts.append("</span>")
     # Only the primary tag on the card: the extras are still filterable through
-    # data-tags, but a 17rem foot has room for one label, not four.
-    tag = f'<span class="tag">{html.escape(note.tag)}</span>' if note.tag else ""
+    # data-tags, but a 17rem foot has room for one label, not four. DEFAULT_TAG
+    # is excluded even though a note rendered before this check existed can
+    # still carry it literally — new renders never will (see render.tags_html).
+    tag = (
+        f'<span class="tag">{html.escape(note.tag)}</span>'
+        if note.tag and fold(note.tag) != fold(DEFAULT_TAG) else ""
+    )
     parts.append(
         '<span class="foot">'
         f'<span class="kind">{html.escape(strings[note.kind])}</span>{tag}'
@@ -111,18 +116,22 @@ def card_html(note: Note, number: int, out_dir: Path, strings: dict[str, str]) -
 
 
 def build_chips(notes: list[Note]) -> str:
-    """The chip row: one button per distinct tag across the collected notes.
+    """The chip row: one button per distinct real tag across the collected
+    notes, alphabetical.
 
-    Alphabetical, with DEFAULT_TAG last — it is the unfiled drawer, and a
-    vocabulary is easier to scan when the real topics come first.
+    DEFAULT_TAG never gets a chip — it is the skill's internal fallback for
+    "nothing fit," not a topic to filter by. A note carrying it literally
+    (rendered before this check existed) is simply absent from every chip.
     """
     seen: dict[str, str] = {}
     for note in notes:
         for tag in tags_of(note):
+            if fold(tag) == fold(DEFAULT_TAG):
+                continue
             seen.setdefault(fold(tag), tag)
     if not seen:
         return ""
-    order = sorted(seen.items(), key=lambda kv: (kv[0] == fold(DEFAULT_TAG), kv[0]))
+    order = sorted(seen.items())
     chips = "".join(
         f'<button class="chip" type="button" aria-pressed="false"'
         f' data-tag="{html.escape(folded, quote=True)}">{html.escape(name)}</button>'
@@ -219,24 +228,38 @@ def _selftest() -> int:
     assert "2 notes &middot; 2026-08-01 – 2026-08-18" in page
 
     # Tags: the card shows the primary one, data-tags carries every tag folded
-    # and pipe-delimited, and one chip exists per distinct tag.
+    # and pipe-delimited, and one chip exists per distinct real tag.
     assert '<span class="tag">Investing</span>' in page, "the card shows the primary tag"
     assert 'data-tags="|investing|inversion|"' in page, (
         "every tag, folded and pipe-delimited so the template matches whole tags"
     )
-    assert f'data-tag="{DEFAULT_TAG.lower()}"' in page, "the untagged-by-default article gets a chip"
-    assert page.index('data-tag="investing"') < page.index(f'data-tag="{DEFAULT_TAG.lower()}"'), (
-        f"{DEFAULT_TAG} sorts last — it is the unfiled drawer"
+    assert f'data-tag="{DEFAULT_TAG.lower()}"' not in page, (
+        "DEFAULT_TAG is an internal fallback, never a chip"
     )
-    assert page.count('class="chip"') == 3, "one chip per distinct tag, not per note"
+    assert page.count('class="chip"') == 2, "one chip per distinct real tag, not per note"
+    article_page = build_gallery([article], out_dir, notes_dir, today="2026-01-01")
+    assert '<span class="tag">' not in article_page, (
+        "the untagged-by-default article shows no tag label on its own card"
+    )
 
-    # A note written before tags existed is filed under DEFAULT_TAG rather than
-    # dropping out of every chip.
+    # A note written before tags existed has no tags at all — absent from
+    # every chip, same as an explicitly-untagged one.
     legacy = parse_note(notes_dir / "2026-07-01-old.html", "<html><body><p>hi</p></body></html>")
-    assert tags_of(legacy) == (DEFAULT_TAG,)
+    assert tags_of(legacy) == (), "no fake DEFAULT_TAG fallback here — see tags_of"
     legacy_page = build_gallery([legacy], out_dir, notes_dir, today="2026-01-01")
-    assert f'data-tags="|{DEFAULT_TAG.lower()}|"' in legacy_page
+    assert f'data-tag="{DEFAULT_TAG.lower()}"' not in legacy_page
     assert '<span class="tag">' not in legacy_page, "no tag label on a card with no tag of its own"
+
+    # A note rendered before this check existed can still carry DEFAULT_TAG
+    # literally in its tag row — must not surface it either.
+    stale = parse_note(
+        notes_dir / "2026-06-01-stale.html",
+        '<html><body><p class="tags"><span class="tag is-primary">Unknown</span></p></body></html>',
+    )
+    assert stale.tag == DEFAULT_TAG, "sanity: the parser still reads what is literally on disk"
+    stale_page = build_gallery([stale], out_dir, notes_dir, today="2026-01-01")
+    assert '<span class="tag">' not in stale_page, "a literal Unknown row from an old render is still hidden"
+    assert f'data-tag="{DEFAULT_TAG.lower()}"' not in stale_page
 
     page_es = build_gallery([video], out_dir, notes_dir, lang="es", today="2026-01-01")
     assert "1 nota &middot; 2026-08-18" in page_es

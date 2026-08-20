@@ -271,8 +271,8 @@ def _selftest() -> int:
         byline="S", url="https://x.test", lang="es", today="2026-01-01",
     )
     es_note = parse_note(notes_dir / "2026-01-01-es.html", es)
-    assert ("Afirmación", "el detalle", f"take-notes key-point {DEFAULT_TAG}") in to_cards(es_note, es), (
-        "a note the skill left unfiled still carries the fallback tag into the deck"
+    assert ("Afirmación", "el detalle", "take-notes key-point") in to_cards(es_note, es), (
+        "a note the skill left unfiled carries no tag into the deck — DEFAULT_TAG isn't a real topic"
     )
 
     es_takeaway = render.build_article_document(

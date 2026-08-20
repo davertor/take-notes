@@ -131,14 +131,23 @@ def rail_footer_html(lang: str, url: str | None, today: str) -> str:
 
 
 def tags_html(tags: list[str] | None) -> str:
-    """The rail's tag row. First tag wins `is-primary` — the one a gallery card
-    shows and files the note under.
+    """The rail's tag row, or nothing when there is no real tag to show.
 
-    A dumb renderer: nothing here checks the vocabulary in config.json. The
-    skill owns that choice, and a `--out-dir` test run has to keep working with
-    whatever values it is handed.
+    First tag wins `is-primary` — the one a gallery card shows and files the
+    note under. DEFAULT_TAG ("Unknown") is the skill's internal fallback for
+    "nothing fit," never a tag worth displaying, so a note that only has it
+    gets no tag row at all rather than an "Unknown" badge.
+
+    A dumb renderer otherwise: nothing here checks the vocabulary in
+    config.json. The skill owns that choice, and a `--out-dir` test run has
+    to keep working with whatever values it is handed.
     """
-    names = [t.strip() for t in (tags or []) if t and t.strip()] or [DEFAULT_TAG]
+    names = [
+        t.strip() for t in (tags or [])
+        if t and t.strip() and t.strip().casefold() != DEFAULT_TAG.casefold()
+    ]
+    if not names:
+        return ""
     spans = "".join(
         f'<span class="tag{" is-primary" if i == 0 else ""}">{html.escape(name)}</span>'
         for i, name in enumerate(names)
@@ -369,15 +378,20 @@ def _selftest() -> int:
         '<p class="tags"><span class="tag is-primary">AI</span>'
         '<span class="tag">Engineering</span></p>'
     )
-    assert tags_html(None) == f'<p class="tags"><span class="tag is-primary">{DEFAULT_TAG}</span></p>'
+    assert tags_html(None) == "", "no tags at all means no tag row, not an Unknown badge"
+    assert tags_html([DEFAULT_TAG]) == "", "DEFAULT_TAG alone is still nothing to show"
+    assert tags_html(["unknown"]) == "", "the filter is case-insensitive"
+    assert tags_html([DEFAULT_TAG, "AI"]) == '<p class="tags"><span class="tag is-primary">AI</span></p>', (
+        "DEFAULT_TAG is dropped even mixed with a real tag, which promotes AI to primary"
+    )
     assert tags_html(["  ", "AI"]) == '<p class="tags"><span class="tag is-primary">AI</span></p>'
     assert '<span class="tag is-primary">R &amp; D</span>' in tags_html(["R & D"]), "tag names are escaped"
     assert '<span class="tag is-primary">AI</span>' in build_video_document(
         "T", "<h2>S</h2><p>ok</p>", url="https://youtu.be/a", video_id="a",
         tags=["AI"], today="2026-01-01",
     ), "the video rail carries the tag row"
-    assert f'<span class="tag is-primary">{DEFAULT_TAG}</span>' in article_doc, (
-        "an untagged render still files the note under the default tag"
+    assert '<p class="tags">' not in article_doc, (
+        "an untagged render gets no tag row at all, not an Unknown badge"
     )
 
     assert build_article_meta(None, None) == ""

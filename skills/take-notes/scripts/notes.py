@@ -328,7 +328,9 @@ def _selftest() -> int:
     )
     assert tagged.tag == "AI", tagged.tag
     assert tagged.tags == ("AI", "Engineering"), tagged.tags
-    assert video.tag == DEFAULT_TAG and video.tags == (DEFAULT_TAG,), "untagged renders get the default"
+    assert video.tag == "" and video.tags == (), (
+        "an untagged render carries no tag row (see render.tags_html) and so parses as untagged"
+    )
     assert parse_tags('<p class="tags"><span class="tag">R &amp; D</span></p>') == ("R & D", ("R & D",)), (
         "entities decode, and document order stands in for a missing is-primary"
     )
