@@ -25,6 +25,10 @@ DEFAULT_OUT_DIR = Path.home() / "take-notes" / "html_reports"
 TEMPLATE_PATH = Path(__file__).resolve().parent.parent / "assets" / "template.html"
 ARTICLE_TEMPLATE_PATH = Path(__file__).resolve().parent.parent / "assets" / "article-template.html"
 
+# Kept in step with notes.DEFAULT_TAG, but not imported from it: render.py is
+# the one script with no dependency on the rest, and stays that way.
+DEFAULT_TAG = "Unknown"
+
 # The only two languages Step 2 ever offers (see SKILL.md). Whole sentences,
 # not word-by-word substitution: concatenating translated fragments breaks
 # grammar across languages with different word order. Shared by both rail
@@ -126,6 +130,22 @@ def rail_footer_html(lang: str, url: str | None, today: str) -> str:
     return RAIL_FOOTER_SENTENCE.get(lang, RAIL_FOOTER_SENTENCE["en"]).format(link=link, today=today)
 
 
+def tags_html(tags: list[str] | None) -> str:
+    """The rail's tag row. First tag wins `is-primary` — the one a gallery card
+    shows and files the note under.
+
+    A dumb renderer: nothing here checks the vocabulary in config.json. The
+    skill owns that choice, and a `--out-dir` test run has to keep working with
+    whatever values it is handed.
+    """
+    names = [t.strip() for t in (tags or []) if t and t.strip()] or [DEFAULT_TAG]
+    spans = "".join(
+        f'<span class="tag{" is-primary" if i == 0 else ""}">{html.escape(name)}</span>'
+        for i, name in enumerate(names)
+    )
+    return f'<p class="tags">{spans}</p>'
+
+
 def slugify(title: str, maxlen: int = 60) -> str:
     """Filename-safe ASCII slug; falls back to 'notes' when nothing survives."""
     folded = unicodedata.normalize("NFKD", title)
@@ -146,6 +166,7 @@ def build_article_document(
     span: str | None = None,
     url: str | None = None,
     lang: str = "en",
+    tags: list[str] | None = None,
     today: str | None = None,
 ) -> str:
     today = today or datetime.date.today().isoformat()
@@ -158,6 +179,7 @@ def build_article_document(
         "{{BYLINE}}": html.escape(byline) if byline else "",
         "{{URL}}": html.escape(url or "", quote=True),
         "{{META}}": build_article_meta(span, reading_time),
+        "{{TAGS}}": tags_html(tags),
         "{{BODY}}": body.strip(),
         "{{OPEN}}": html.escape(strings["open"]),
         "{{FOOTER}}": rail_footer_html(lang, url, today),
@@ -205,6 +227,7 @@ def build_video_document(
     published: str | None = None,
     views: str | None = None,
     lang: str = "en",
+    tags: list[str] | None = None,
     today: str | None = None,
 ) -> str:
     thumb = thumbnail or (f"https://i.ytimg.com/vi/{video_id}/hqdefault.jpg" if video_id else "")
@@ -217,6 +240,7 @@ def build_video_document(
         "{{THUMBNAIL}}": html.escape(thumb, quote=True),
         "{{URL}}": html.escape(url or "", quote=True),
         "{{META}}": build_video_meta(byline, channel_url, span, published, views),
+        "{{TAGS}}": tags_html(tags),
         "{{BODY}}": body.strip(),
         "{{WATCH}}": html.escape(strings["watch"]),
         "{{OPEN}}": html.escape(strings["open"]),
@@ -339,6 +363,23 @@ def _selftest() -> int:
     )
     assert "{{" not in article_doc_es
 
+    # Tags: first is primary, the rest are extras, and no --tag at all still
+    # produces a row so every note is filed somewhere.
+    assert tags_html(["AI", "Engineering"]) == (
+        '<p class="tags"><span class="tag is-primary">AI</span>'
+        '<span class="tag">Engineering</span></p>'
+    )
+    assert tags_html(None) == f'<p class="tags"><span class="tag is-primary">{DEFAULT_TAG}</span></p>'
+    assert tags_html(["  ", "AI"]) == '<p class="tags"><span class="tag is-primary">AI</span></p>'
+    assert '<span class="tag is-primary">R &amp; D</span>' in tags_html(["R & D"]), "tag names are escaped"
+    assert '<span class="tag is-primary">AI</span>' in build_video_document(
+        "T", "<h2>S</h2><p>ok</p>", url="https://youtu.be/a", video_id="a",
+        tags=["AI"], today="2026-01-01",
+    ), "the video rail carries the tag row"
+    assert f'<span class="tag is-primary">{DEFAULT_TAG}</span>' in article_doc, (
+        "an untagged render still files the note under the default tag"
+    )
+
     assert build_article_meta(None, None) == ""
     assert build_article_meta("Jan 1, 2026", None) == "Jan 1, 2026"
     assert "&middot;" in build_article_meta("Jan 1, 2026", "6 min read")
@@ -368,6 +409,10 @@ def main() -> int:
     ap.add_argument("--views", default=None, help="Video only: view count as an integer")
     ap.add_argument("--duration", default=None, help="Video only: length in seconds; overrides --span")
     ap.add_argument("--lang", default="en", help="Document language (default: en)")
+    ap.add_argument(
+        "--tag", action="append", default=None,
+        help=f"Topic tag; repeatable, first is the primary one (default: {DEFAULT_TAG})",
+    )
     ap.add_argument("--out-dir", default=None, help=f"Output dir (default: {DEFAULT_OUT_DIR})")
     ap.add_argument("--no-open", action="store_true", help="Do not open a browser")
     ap.add_argument("--selftest", action="store_true", help="Run internal asserts and exit")
@@ -396,12 +441,13 @@ def main() -> int:
             args.title, body,
             byline=args.byline, channel_url=args.channel_url, span=span, url=args.url,
             video_id=args.video_id, thumbnail=args.thumbnail,
-            published=published, views=views, lang=args.lang,
+            published=published, views=views, lang=args.lang, tags=args.tag,
         )
     else:
         document = build_article_document(
             args.title, body,
             byline=args.byline, span=args.span, url=args.url, lang=args.lang,
+            tags=args.tag,
         )
 
     # Re-running on the same source the same day updates that note rather than
