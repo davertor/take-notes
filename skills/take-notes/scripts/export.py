@@ -22,8 +22,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from notes import (  # noqa: E402
-    NOTES_DIR, Note, collect, find_section, list_pairs, parse_note, parse_sections, read, section,
-    text_of,
+    DEFAULT_TAG, NOTES_DIR, Note, collect, find_section, list_pairs, parse_note, parse_sections,
+    read, section, text_of,
 )
 
 
@@ -99,6 +99,10 @@ def _yaml(value: str) -> str:
 
 def to_markdown(note: Note, doc: str) -> str:
     """A note as one Markdown file with YAML frontmatter."""
+    # Every tag, primary first, after the deck-wide one — this is the line
+    # Obsidian's tag pane reads. Quoted throughout: a tag is free text and may
+    # carry a colon or a comma that would otherwise end the flow sequence.
+    tags = ", ".join(_yaml(t) for t in (ANKI_DECK, *note.tags))
     front = [
         "---",
         f"title: {_yaml(note.title)}",
@@ -106,7 +110,7 @@ def to_markdown(note: Note, doc: str) -> str:
         f"byline: {_yaml(note.byline)}",
         f"date: {note.date or ''}",
         f"kind: {note.kind}",
-        "tags: [take-notes]",
+        f"tags: [{tags}]",
         "---",
         "",
         f"# {note.title}",
@@ -128,22 +132,32 @@ def _card_field(text: str) -> str:
     return re.sub(r"\s+", " ", text).strip()
 
 
+def _note_tags(note: Note) -> str:
+    """The note's own tags as Anki tags, appended to the deck-wide ones.
+
+    Anki splits the tags field on whitespace, so a two-word tag has to be
+    hyphenated or it silently becomes two unrelated tags.
+    """
+    return "".join(" " + re.sub(r"\s+", "-", t) for t in note.tags)
+
+
 def to_cards(note: Note, doc: str) -> list[tuple[str, str, str]]:
     """(front, back, tags) triples for one note, or [] when it has none."""
     cards: list[tuple[str, str, str]] = []
-    tag = "take-notes"
+    tag = ANKI_DECK
+    topic = _note_tags(note)  # the note's own tags, so a deck filters by subject too
 
     # The note's own heading, not a hardcoded English label: a Spanish note
     # must not grow an English card front.
     heading, takeaway_html = find_section(doc, "takeaway")
     takeaway = text_of(takeaway_html)
     if takeaway:
-        cards.append((f"{note.title} — {heading}", takeaway, f"{tag} takeaway"))
+        cards.append((f"{note.title} — {heading}", takeaway, f"{tag} takeaway{topic}"))
 
     for kind, label in (("key_points", "key-point"), ("concepts", "concept")):
         for term, definition in list_pairs(section(doc, kind)):
             if definition:  # a term with no definition makes an unanswerable card
-                cards.append((term, definition, f"{tag} {label}"))
+                cards.append((term, definition, f"{tag} {label}{topic}"))
 
     return [(_card_field(f), _card_field(b), t) for f, b, t in cards]
 
@@ -201,7 +215,7 @@ def _selftest() -> int:
         "<blockquote><p>Quoted line.</p></blockquote>"
         "<h2>Concepts</h2><ul><li><strong>TTL</strong> — time to live</li></ul>",
         byline="Postmortem Weekly", span="Aug 15, 2026", url="https://x.test/?a=1&b=2",
-        today="2026-01-01",
+        tags=["Engineering", "Cache design"], today="2026-01-01",
     )
     note = parse_note(notes_dir / "2026-08-16-cache.html", doc)
 
@@ -210,6 +224,9 @@ def _selftest() -> int:
     assert 'title: "Cache: the hard part"' in md, "a colon in a title must stay quoted"
     assert 'source: "https://x.test/?a=1&b=2"' in md, "URL entities decoded once, not twice"
     assert "date: 2026-08-16" in md
+    assert 'tags: ["take-notes", "Engineering", "Cache design"]' in md, (
+        "every tag reaches the frontmatter, primary first — this is Obsidian's tag pane"
+    )
     assert "## Key points" in md and "## How it works" in md
     assert "- **Ownership is the bug** — nobody owns expiry" in md, md
     assert "1. First step" in md and "2. Second step" in md, "ordered lists keep their numbers"
@@ -223,8 +240,12 @@ def _selftest() -> int:
     fronts = [c[0] for c in cards]
     assert fronts[0] == "Cache: the hard part — The one takeaway", fronts[0]
     assert "Name the owner" in cards[0][1]
-    assert ("Ownership is the bug", "nobody owns expiry", "take-notes key-point") in cards
-    assert ("TTL", "time to live", "take-notes concept") in cards
+    assert cards[0][2] == "take-notes takeaway Engineering Cache-design", cards[0][2]
+    assert ("Ownership is the bug", "nobody owns expiry",
+            "take-notes key-point Engineering Cache-design") in cards, (
+        "the note's tags follow the card kind, hyphenated — Anki splits tags on spaces"
+    )
+    assert ("TTL", "time to live", "take-notes concept Engineering Cache-design") in cards
     assert "Bare claim" not in fronts, "a term with no definition is not a card"
 
     text = anki_file(cards)
@@ -250,7 +271,9 @@ def _selftest() -> int:
         byline="S", url="https://x.test", lang="es", today="2026-01-01",
     )
     es_note = parse_note(notes_dir / "2026-01-01-es.html", es)
-    assert ("Afirmación", "el detalle", "take-notes key-point") in to_cards(es_note, es)
+    assert ("Afirmación", "el detalle", f"take-notes key-point {DEFAULT_TAG}") in to_cards(es_note, es), (
+        "a note the skill left unfiled still carries the fallback tag into the deck"
+    )
 
     es_takeaway = render.build_article_document(
         "Español",
