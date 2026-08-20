@@ -11,7 +11,7 @@ metadata:
 # `allowed-tools` stays comma-separated: the spec asks for spaces but marks the
 # field experimental ("support may vary"), and commas are what Claude Code
 # parses today. Do not "correct" either without testing in Claude Code first.
-argument-hint: "<video-or-article-url> [focus or question] [--lang en|es]"
+argument-hint: "<video-or-article-url> [focus] [--lang en|es] | --tags | --add-tag X | --remove-tag X"
 allowed-tools: Bash, Read, WebFetch, AskUserQuestion
 disable-model-invocation: true
 ---
@@ -25,6 +25,8 @@ into a browsable local archive instead of scrolling away in the terminal.
 
 Invocation: `/take-notes <url> [focus]`. If no URL is given, ask for one.
 The optional focus narrows what the notes emphasise ("just the API design part").
+`--tags`, `--add-tag`, and `--remove-tag` manage the tag vocabulary instead —
+see Step 0.
 
 ## Resolve `SKILL_DIR` (before any command, both source types)
 
@@ -40,6 +42,25 @@ if [ ! -f "$SKILL_DIR/scripts/render.py" ]; then
   exit 1
 fi
 ```
+
+## Step 0 — tag management short-circuits everything else
+
+Three invocations manage the tag vocabulary instead of writing a note. If the
+invocation is one of them, run the matching command, report the result, and
+**stop** — no source, no note, nothing else in this file applies:
+
+| Invocation | Command |
+|---|---|
+| `/take-notes --tags` | `uv run "${SKILL_DIR}/scripts/tags.py"` |
+| `/take-notes --add-tag "AI"` | `uv run "${SKILL_DIR}/scripts/tags.py" --add "AI"` |
+| `/take-notes --remove-tag "AI"` | `uv run "${SKILL_DIR}/scripts/tags.py" --remove "AI"` |
+
+Both editing forms are repeatable — pass `--add` or `--remove` once per tag.
+The script prints the resulting vocabulary; report that, and nothing more. It
+rewrites only the `tags` key, so `language` survives untouched.
+
+`Unknown` cannot be removed: it is the fallback the note writer needs when a
+source fits nothing. The script says so and leaves it in place.
 
 ## Step 1 — route to the right acquisition guide
 
@@ -83,7 +104,11 @@ notes from a title, a description, or a paywall stub.
 Do not put note-writing guidance in the reference files, and do not put
 acquisition detail here. Two copies of the writing standard will drift.
 
-## Step 2 — settle the language
+## Step 2 — settle the language and the tag
+
+One read of `~/take-notes/config.json` answers both: `language` and `tags`.
+
+### Language
 
 This skill writes in **English or Spanish only**. Resolve which, in this order,
 and stop at the first that applies:
@@ -98,7 +123,7 @@ and stop at the first that applies:
    broken config must never block the run.
 
 ```json
-{ "language": "es" }
+{ "language": "es", "tags": ["Unknown", "AI", "Investing", "Engineering"] }
 ```
 
 `--lang` with anything other than `en` or `es` is **not** an error to stop on,
@@ -133,6 +158,23 @@ English first.
 However it resolves, the result sets the language for Step 4's headings and
 prose, and the `--lang` code for Step 5 (`en` or `es`).
 
+### Tags
+
+`tags` in the same file is a **closed vocabulary**, curated by hand. Pick from
+it; do not extend it:
+
+1. **One primary tag** — the single best fit for what this source is about.
+   That is what the gallery card shows and files the note under.
+2. **Optional extras**, only when they genuinely apply. Two is usually plenty;
+   tagging a note with half the vocabulary makes every filter useless.
+3. **Never invent a tag.** A name that is not in the list is not an option, no
+   matter how well it fits.
+4. **Nothing fits, or `tags` is absent, empty, or unreadable → `Unknown`.**
+   Silently. Do not ask, do not suggest a new tag, do not explain the fallback.
+
+Say which primary tag you chose in the same short line as the language, without
+justifying it: *Writing in English (default), filed under **Engineering**.*
+
 ## Step 3 — read for teaching, not for summarising
 
 Before writing, decide: what does someone who consumed this source now *know*
@@ -156,11 +198,15 @@ Pipe the body HTML to the renderer, filling the flags from your Step 1 fields:
 ```bash
 uv run "${SKILL_DIR}/scripts/render.py" \
   --title "<title>" --byline "<channel or author>" \
-  --span "<duration or publication date>" --url "<canonical URL>" <<'HTML'
+  --span "<duration or publication date>" --url "<canonical URL>" \
+  --tag "<primary tag>" <<'HTML'
 <h2>Executive summary</h2>
 ...
 HTML
 ```
+
+Pass one `--tag` per tag chosen in Step 2, **primary first** — `--tag AI --tag
+Engineering`. With no `--tag` at all the note is filed under `Unknown`.
 
 For video sources, also pass whichever of `--video-id <id>`, `--thumbnail <url>`,
 `--channel-url <url>`, `--published <YYYYMMDD>`, `--views <int>`,
@@ -179,6 +225,10 @@ It writes `~/take-notes/html_reports/YYYY-MM-DD-<slug>.html` and opens it.
 Re-running on the same source the same day **updates** that file rather than
 adding a near-duplicate; the script prints `created:` or `updated:` with the
 path. Report that path.
+
+That is also how a note gets re-tagged: while the body is still in context,
+re-run this command with a different `--tag`. Rewriting the tag inside an
+already-written file is not something this skill does — re-run the source.
 
 Pass `--lang` matching Step 2's choice (`en` or `es`). Add `--no-open` to skip
 the browser, `--out-dir` to write somewhere other than `~/take-notes/html_reports`.

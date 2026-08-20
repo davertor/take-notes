@@ -161,6 +161,17 @@ h1 {
 .watch span { transition: transform .2s ease; }
 .watch:hover span { transform: translateX(2px); }
 
+/* Tags: the note's shelf label, in the same mono register as .kicker so the
+   rail keeps one voice. The primary one is in pen — it is what the gallery
+   files the note under; the rest are muted extras. */
+.tags { display: flex; flex-wrap: wrap; gap: .35rem; margin: .95rem 0 0; }
+.tag {
+  font: 500 .6rem/1.35 "JetBrains Mono", ui-monospace, monospace;
+  letter-spacing: .1em; text-transform: uppercase; color: var(--ink-45);
+  border: 1px solid var(--rule); padding: .18rem .42rem;
+}
+.tag.is-primary { color: var(--pen); border-color: var(--pen); }
+
 /* Index: sequential marks instead of timestamps — an article has no clock to
    annotate, so the gutter counts instead. */
 #index { margin-top: 2rem; }
@@ -277,6 +288,7 @@ footer a { color: inherit; text-decoration-color: var(--rule); }
   h1 { animation-delay: .07s; }
   .meta { animation-delay: .11s; }
   .watch { animation-delay: .15s; }
+  .tags { animation-delay: .17s; }
   #index { animation-delay: .19s; }
   nav.spy { animation-delay: .08s; }
   #body > section:nth-of-type(1) { animation-delay: .14s; }
@@ -341,6 +353,7 @@ footer a { color: inherit; text-decoration-color: var(--rule); }
     <h1>{{TITLE}}</h1>
     <p class="meta">{{META}}</p>
     <a class="watch" href="{{URL}}" target="_blank" rel="noopener">{{OPEN}} <span>&#8594;</span></a>
+    {{TAGS}}
     <div id="index"></div>
   </aside>
 

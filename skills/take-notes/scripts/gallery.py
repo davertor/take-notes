@@ -13,18 +13,18 @@ from __future__ import annotations
 import argparse
 import datetime
 import html
-import json
 import os
 import sys
 import webbrowser
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from notes import NOTES_DIR, Note, collect, fold, length_of  # noqa: E402
+from notes import (  # noqa: E402
+    DEFAULT_TAG, NOTES_DIR, Note, collect, fold, length_of, read_config,
+)
 
 
 DEFAULT_OUT = Path.home() / "take-notes" / "gallery.html"
-CONFIG_FILE = Path.home() / "take-notes" / "config.json"
 TEMPLATE_PATH = Path(__file__).resolve().parent.parent / "assets" / "gallery-template.html"
 
 # Whole phrases, like render.py's — see the note there on why these are not
@@ -57,9 +57,22 @@ UI = {
 }
 
 
+def tags_of(note: Note) -> tuple[str, ...]:
+    """Every tag on a note, DEFAULT_TAG standing in when it has none.
+
+    Notes written before tagging existed have no tag row at all; filing them
+    under DEFAULT_TAG here keeps them reachable from a chip instead of
+    invisible to every filter but the text one.
+    """
+    return note.tags or (DEFAULT_TAG,)
+
+
 def card_html(note: Note, number: int, out_dir: Path, strings: dict[str, str]) -> str:
     href = html.escape(os.path.relpath(note.path, out_dir), quote=True)
     search = html.escape(fold(f"{note.title} {note.byline} {note.detail}"), quote=True)
+    # Pipe-delimited, folded, with both ends closed, so the template's JS can
+    # match a whole tag ("|ai|") without "ai" also hitting "|air gap|".
+    tags = html.escape("|" + "|".join(fold(t) for t in tags_of(note)) + "|", quote=True)
     # The full meta line is searchable but too long for a 17rem card: the foot
     # keeps the length and the filing date, the two things you scan a shelf by.
     stamp = " &middot; ".join(html.escape(v) for v in (length_of(note.detail), note.date) if v)
@@ -74,20 +87,48 @@ def card_html(note: Note, number: int, out_dir: Path, strings: dict[str, str]) -
         # plate that repeats it just prints the same words twice.
         plate = f'<span class="plate is-blank"><span class="mark">{number:02d}</span></span>'
 
-    parts = [f'<a class="card" href="{href}" data-search="{search}">', plate, '<span class="body">']
+    parts = [
+        f'<a class="card" href="{href}" data-search="{search}" data-tags="{tags}">',
+        plate,
+        '<span class="body">',
+    ]
     if note.byline:
         parts.append(f'<span class="kicker">{html.escape(note.byline)}</span>')
     parts.append(f'<span class="title">{html.escape(note.title)}</span>')
     if note.excerpt:
         parts.append(f'<span class="excerpt">{html.escape(note.excerpt)}</span>')
     parts.append("</span>")
+    # Only the primary tag on the card: the extras are still filterable through
+    # data-tags, but a 17rem foot has room for one label, not four.
+    tag = f'<span class="tag">{html.escape(note.tag)}</span>' if note.tag else ""
     parts.append(
         '<span class="foot">'
-        f'<span class="kind">{html.escape(strings[note.kind])}</span>'
+        f'<span class="kind">{html.escape(strings[note.kind])}</span>{tag}'
         f'<span class="date">{stamp}</span></span>'
     )
     parts.append("</a>")
     return "".join(parts)
+
+
+def build_chips(notes: list[Note]) -> str:
+    """The chip row: one button per distinct tag across the collected notes.
+
+    Alphabetical, with DEFAULT_TAG last — it is the unfiled drawer, and a
+    vocabulary is easier to scan when the real topics come first.
+    """
+    seen: dict[str, str] = {}
+    for note in notes:
+        for tag in tags_of(note):
+            seen.setdefault(fold(tag), tag)
+    if not seen:
+        return ""
+    order = sorted(seen.items(), key=lambda kv: (kv[0] == fold(DEFAULT_TAG), kv[0]))
+    chips = "".join(
+        f'<button class="chip" type="button" aria-pressed="false"'
+        f' data-tag="{html.escape(folded, quote=True)}">{html.escape(name)}</button>'
+        for folded, name in order
+    )
+    return f'<div class="chips" id="chips">{chips}</div>'
 
 
 def build_tally(notes: list[Note], strings: dict[str, str]) -> str:
@@ -117,6 +158,7 @@ def build_gallery(
         "{{TITLE}}": html.escape(strings["title"]),
         "{{TALLY}}": build_tally(notes, strings),
         "{{PLACEHOLDER}}": html.escape(strings["placeholder"], quote=True),
+        "{{CHIPS}}": build_chips(notes),
         "{{CARDS}}": cards or f'<p class="blank">{html.escape(strings["empty"])}</p>',
         "{{NOMATCH}}": html.escape(strings["nomatch"]),
         "{{FOOTER}}": strings["built"].format(dir=html.escape(str(notes_dir)), today=today),
@@ -134,10 +176,7 @@ def config_lang() -> str:
     "ask" is a question for the note-writing skill, not for a static page, so
     it resolves to English here rather than blocking the build.
     """
-    try:
-        value = json.loads(CONFIG_FILE.read_text(encoding="utf-8")).get("language")
-    except (OSError, ValueError, AttributeError):
-        return "en"
+    value = read_config().get("language")
     return value if value in UI else "en"
 
 
@@ -155,7 +194,7 @@ def _selftest() -> int:
             "<h2>Executive summary</h2><p>A &amp; B argue that markets rise.</p>",
             byline="La Pizarra", channel_url="https://youtube.com/@x", span="11 min",
             url="https://youtu.be/abc123", video_id="abc123", views="13.2K views",
-            today="2026-01-01",
+            tags=["Investing", "Inversión"], today="2026-01-01",
         ),
     )
     article = parse_note(
@@ -179,12 +218,33 @@ def _selftest() -> int:
     assert ">02<" in page and "is-blank" in page, "the poster-less note gets a filing plate"
     assert "2 notes &middot; 2026-08-01 – 2026-08-18" in page
 
+    # Tags: the card shows the primary one, data-tags carries every tag folded
+    # and pipe-delimited, and one chip exists per distinct tag.
+    assert '<span class="tag">Investing</span>' in page, "the card shows the primary tag"
+    assert 'data-tags="|investing|inversion|"' in page, (
+        "every tag, folded and pipe-delimited so the template matches whole tags"
+    )
+    assert f'data-tag="{DEFAULT_TAG.lower()}"' in page, "the untagged-by-default article gets a chip"
+    assert page.index('data-tag="investing"') < page.index(f'data-tag="{DEFAULT_TAG.lower()}"'), (
+        f"{DEFAULT_TAG} sorts last — it is the unfiled drawer"
+    )
+    assert page.count('class="chip"') == 3, "one chip per distinct tag, not per note"
+
+    # A note written before tags existed is filed under DEFAULT_TAG rather than
+    # dropping out of every chip.
+    legacy = parse_note(notes_dir / "2026-07-01-old.html", "<html><body><p>hi</p></body></html>")
+    assert tags_of(legacy) == (DEFAULT_TAG,)
+    legacy_page = build_gallery([legacy], out_dir, notes_dir, today="2026-01-01")
+    assert f'data-tags="|{DEFAULT_TAG.lower()}|"' in legacy_page
+    assert '<span class="tag">' not in legacy_page, "no tag label on a card with no tag of its own"
+
     page_es = build_gallery([video], out_dir, notes_dir, lang="es", today="2026-01-01")
     assert "1 nota &middot; 2026-08-18" in page_es
     assert ">vídeo<" in page_es and "notes &middot;" not in page_es, "no English chrome in a Spanish gallery"
 
     empty = build_gallery([], out_dir, notes_dir, today="2026-01-01")
     assert "No notes yet" in empty and "{{" not in empty
+    assert 'class="chips"' not in empty, "no chip row at all when there is nothing to file"
 
     print("selftest: ok")
     return 0

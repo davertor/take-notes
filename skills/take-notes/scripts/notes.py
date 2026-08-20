@@ -6,14 +6,19 @@ The one place that knows how to parse a note. Nothing here writes anything —
 flashcards, and both read through this module so the scraping rules live once.
 
 A note is its own database: the masthead classes (`.poster`, `.kicker`,
-`.meta`, `.watch`) and the flat `<h2>`-delimited body are the contract with
-assets/template.html, assets/article-template.html, and SKILL.md's
+`.meta`, `.watch`, `.tag`) and the flat `<h2>`-delimited body are the contract
+with assets/template.html, assets/article-template.html, and SKILL.md's
 "Keep the HTML plain" rule. Break one and this module's --selftest fails,
 which is the point.
+
+It also owns `~/take-notes/config.json`, the one file the user edits by hand:
+the note language and the manual tag vocabulary. One reader, so gallery.py and
+tags.py cannot disagree about what a malformed config means.
 """
 from __future__ import annotations
 
 import html
+import json
 import re
 import sys
 import unicodedata
@@ -22,11 +27,18 @@ from pathlib import Path
 
 
 NOTES_DIR = Path.home() / "take-notes" / "html_reports"
+CONFIG_FILE = Path.home() / "take-notes" / "config.json"
 
 EXCERPT_CHARS = 190
 
+# The tag every note falls back to. The vocabulary is curated by hand, so the
+# agent needs an escape hatch it can always reach for without inventing one.
+DEFAULT_TAG = "Unknown"
+
 DATE_PREFIX = re.compile(r"^(\d{4}-\d{2}-\d{2})-")
 TAGS = re.compile(r"<[^>]+>")
+TAG_ROW = re.compile(r'<p class="tags">(.*?)</p>', re.DOTALL)
+TAG_SPAN = re.compile(r'<span class="tag([^"]*)">(.*?)</span>', re.DOTALL)
 
 # Section headings, both languages. SKILL.md fixes the English names and their
 # Spanish equivalents; matching on words rather than exact strings keeps a note
@@ -52,6 +64,38 @@ class Note:
     source: str
     date: str
     kind: str  # "video" | "article"
+    tag: str = ""                     # primary tag, the one a card shows
+    tags: tuple[str, ...] = ()        # every tag, primary first
+
+
+def read_config(path: Path | None = None) -> dict:
+    """`~/take-notes/config.json` as a dict; `{}` when absent or malformed.
+
+    Tolerant on purpose: a hand-edited file with a stray comma must never stop
+    a note from being written. Every caller has a working default.
+    """
+    try:
+        value = json.loads((path or CONFIG_FILE).read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {}
+    return value if isinstance(value, dict) else {}
+
+
+def configured_tags(config: dict | None = None) -> list[str]:
+    """The manual tag vocabulary, with DEFAULT_TAG guaranteed first.
+
+    Closed by design — the note-writing skill picks from this list and never
+    invents a tag, so the taxonomy stays the user's rather than the model's.
+    """
+    raw = (read_config() if config is None else config).get("tags")
+    names = [t.strip() for t in raw if isinstance(t, str) and t.strip()] if isinstance(raw, list) else []
+    seen = {DEFAULT_TAG.casefold()}
+    vocabulary = [DEFAULT_TAG]
+    for name in names:
+        if name.casefold() not in seen:
+            seen.add(name.casefold())
+            vocabulary.append(name)
+    return vocabulary
 
 
 def text_of(fragment: str) -> str:
@@ -162,6 +206,25 @@ def excerpt_of(doc: str) -> str:
     return (head or cut).rstrip(",;:.—- ") + "…"
 
 
+def parse_tags(doc: str) -> tuple[str, tuple[str, ...]]:
+    """The rail's tag row as (primary, all tags with primary first).
+
+    The primary is the span carrying `is-primary`, falling back to document
+    order. A note written before tags existed has no row at all and comes back
+    as ("", ()) rather than a guessed tag — the gallery decides what an
+    untagged note is filed under, not the parser.
+    """
+    row = TAG_ROW.search(doc)
+    if not row:
+        return "", ()
+    found = [(cls, text_of(inner)) for cls, inner in TAG_SPAN.findall(row.group(1))]
+    names = [name for _, name in found if name]
+    if not names:
+        return "", ()
+    primary = next((name for cls, name in found if "is-primary" in cls and name), names[0])
+    return primary, (primary, *[n for n in names if n != primary])
+
+
 def parse_note(path: Path, doc: str) -> Note:
     """Pull the masthead back out of a rendered note."""
     poster = attr(r'<a class="poster" href="([^"]*)"', doc)
@@ -174,6 +237,7 @@ def parse_note(path: Path, doc: str) -> Note:
         byline, _, detail = (part.strip() for part in meta.partition("·"))
 
     date_match = DATE_PREFIX.match(path.name)
+    tag, tags = parse_tags(doc)
     return Note(
         path=path,
         title=text_of(find(r"<title>(.*?)</title>", doc)) or path.stem,
@@ -184,6 +248,8 @@ def parse_note(path: Path, doc: str) -> Note:
         source=poster or attr(r'<a class="watch" href="([^"]*)"', doc),
         date=date_match.group(1) if date_match else "",
         kind="video" if poster else "article",
+        tag=tag,
+        tags=tags,
     )
 
 
@@ -249,6 +315,33 @@ def _selftest() -> int:
     # A note with no masthead at all must degrade, not explode.
     bare = parse_note(notes_dir / "stray.html", "<html><body><p>hi</p></body></html>")
     assert bare.title == "stray" and bare.kind == "article" and bare.date == ""
+    assert (bare.tag, bare.tags) == ("", ()), "a note written before tags existed still parses"
+
+    # Tags round-trip: the primary is the is-primary span, extras follow in
+    # document order, and both templates carry the row.
+    tagged = parse_note(
+        notes_dir / "2026-08-18-tagged.html",
+        render.build_article_document(
+            "Tagged", "<h2>Executive summary</h2><p>ok</p>",
+            byline="S", url="https://x.test", tags=["AI", "Engineering"], today="2026-01-01",
+        ),
+    )
+    assert tagged.tag == "AI", tagged.tag
+    assert tagged.tags == ("AI", "Engineering"), tagged.tags
+    assert video.tag == DEFAULT_TAG and video.tags == (DEFAULT_TAG,), "untagged renders get the default"
+    assert parse_tags('<p class="tags"><span class="tag">R &amp; D</span></p>') == ("R & D", ("R & D",)), (
+        "entities decode, and document order stands in for a missing is-primary"
+    )
+    assert parse_tags("<p>no tag row</p>") == ("", ())
+
+    # Config: tolerant read, vocabulary always led by DEFAULT_TAG.
+    assert read_config(Path("/tmp/take-notes/does-not-exist.json")) == {}
+    assert configured_tags({}) == [DEFAULT_TAG]
+    assert configured_tags({"tags": "AI"}) == [DEFAULT_TAG], "a non-list `tags` is ignored, not fatal"
+    assert configured_tags({"tags": ["AI", " ", "Investing"]}) == [DEFAULT_TAG, "AI", "Investing"]
+    assert configured_tags({"tags": ["AI", "ai", DEFAULT_TAG]}) == [DEFAULT_TAG, "AI"], (
+        "case-insensitive dedupe, and DEFAULT_TAG is never listed twice"
+    )
 
     assert length_of("11 min · 16 ago 2026 · 13.2K visualizaciones") == "11 min"
     assert length_of("Jan 1, 2026 · 6 min read") == "6 min read"
