@@ -11,7 +11,6 @@ visible, and means nothing to keep in sync when a note is deleted by hand.
 from __future__ import annotations
 
 import argparse
-import datetime
 import html
 import os
 import sys
@@ -40,7 +39,7 @@ UI = {
         "nomatch": "Nothing matches.",
         "video": "video",
         "article": "article",
-        "built": "{dir} &middot; built {today}",
+        "built": "{dir}",
     },
     "es": {
         "title": "take-notes — archivo",
@@ -156,10 +155,8 @@ def build_gallery(
     out_dir: Path,
     notes_dir: Path,
     lang: str = "en",
-    today: str | None = None,
 ) -> str:
     strings = UI.get(lang, UI["en"])
-    today = today or datetime.date.today().isoformat()
     cards = "\n".join(card_html(n, i + 1, out_dir, strings) for i, n in enumerate(notes))
     doc = TEMPLATE_PATH.read_text(encoding="utf-8")
     for token, value in {
@@ -170,7 +167,7 @@ def build_gallery(
         "{{CHIPS}}": build_chips(notes),
         "{{CARDS}}": cards or f'<p class="blank">{html.escape(strings["empty"])}</p>',
         "{{NOMATCH}}": html.escape(strings["nomatch"]),
-        "{{FOOTER}}": strings["built"].format(dir=html.escape(str(notes_dir)), today=today),
+        "{{FOOTER}}": strings["built"].format(dir=html.escape(str(notes_dir))),
     }.items():
         doc = doc.replace(token, value)
     if "{{" in doc:
@@ -203,7 +200,7 @@ def _selftest() -> int:
             "<h2>Executive summary</h2><p>A &amp; B argue that markets rise.</p>",
             byline="La Pizarra", channel_url="https://youtube.com/@x", span="11 min",
             url="https://youtu.be/abc123", video_id="abc123", views="13.2K views",
-            tags=["Investing", "Inversión"], today="2026-01-01",
+            tags=["Investing", "Inversión"],
         ),
     )
     article = parse_note(
@@ -212,16 +209,15 @@ def _selftest() -> int:
             "Título ñ",
             "<h2>Executive summary</h2><p>" + ("palabra " * 80) + "</p>",
             byline="Sitio & Co", span="Jan 1, 2026", url="https://x.test/?a=1&b=2",
-            today="2026-01-01",
         ),
     )
 
-    page = build_gallery([video, article], out_dir, notes_dir, today="2026-01-01")
+    page = build_gallery([video, article], out_dir, notes_dir)
     assert "{{" not in page
     assert 'href="html_reports/2026-08-18-rising.html"' in page, "links are relative to the gallery"
     assert "<span class=\"title\">5 &gt; 3 &amp; rising</span>" in page, "card fields stay escaped"
     assert 'data-search="5 &gt; 3 &amp; rising la pizarra' in page, "filter haystack is folded"
-    assert 'titulo n' in build_gallery([article], out_dir, notes_dir, today="2026-01-01"), (
+    assert 'titulo n' in build_gallery([article], out_dir, notes_dir), (
         "accents are stripped from the haystack, matching the template's filter JS"
     )
     assert ">02<" in page and "is-blank" in page, "the poster-less note gets a filing plate"
@@ -237,7 +233,7 @@ def _selftest() -> int:
         "DEFAULT_TAG is an internal fallback, never a chip"
     )
     assert page.count('class="chip"') == 2, "one chip per distinct real tag, not per note"
-    article_page = build_gallery([article], out_dir, notes_dir, today="2026-01-01")
+    article_page = build_gallery([article], out_dir, notes_dir)
     assert '<span class="tag">' not in article_page, (
         "the untagged-by-default article shows no tag label on its own card"
     )
@@ -246,7 +242,7 @@ def _selftest() -> int:
     # every chip, same as an explicitly-untagged one.
     legacy = parse_note(notes_dir / "2026-07-01-old.html", "<html><body><p>hi</p></body></html>")
     assert tags_of(legacy) == (), "no fake DEFAULT_TAG fallback here — see tags_of"
-    legacy_page = build_gallery([legacy], out_dir, notes_dir, today="2026-01-01")
+    legacy_page = build_gallery([legacy], out_dir, notes_dir)
     assert f'data-tag="{DEFAULT_TAG.lower()}"' not in legacy_page
     assert '<span class="tag">' not in legacy_page, "no tag label on a card with no tag of its own"
 
@@ -257,15 +253,15 @@ def _selftest() -> int:
         '<html><body><p class="tags"><span class="tag is-primary">Unknown</span></p></body></html>',
     )
     assert stale.tag == DEFAULT_TAG, "sanity: the parser still reads what is literally on disk"
-    stale_page = build_gallery([stale], out_dir, notes_dir, today="2026-01-01")
+    stale_page = build_gallery([stale], out_dir, notes_dir)
     assert '<span class="tag">' not in stale_page, "a literal Unknown row from an old render is still hidden"
     assert f'data-tag="{DEFAULT_TAG.lower()}"' not in stale_page
 
-    page_es = build_gallery([video], out_dir, notes_dir, lang="es", today="2026-01-01")
+    page_es = build_gallery([video], out_dir, notes_dir, lang="es")
     assert "1 nota &middot; 2026-08-18" in page_es
     assert ">vídeo<" in page_es and "notes &middot;" not in page_es, "no English chrome in a Spanish gallery"
 
-    empty = build_gallery([], out_dir, notes_dir, today="2026-01-01")
+    empty = build_gallery([], out_dir, notes_dir)
     assert "No notes yet" in empty and "{{" not in empty
     assert 'class="chips"' not in empty, "no chip row at all when there is nothing to file"
 

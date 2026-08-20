@@ -3,7 +3,7 @@
 All notable changes to this project are documented here, in the
 [Keep a Changelog](https://keepachangelog.com/) style. Maintained by hand: a
 release adds a section here, bumps `skills/take-notes/SKILL.md`'s `version`,
-and tags — see [Contribute](README.md#contribute).
+and tags — see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## [1.0.0]
 
