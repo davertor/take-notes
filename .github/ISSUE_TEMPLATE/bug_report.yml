@@ -42,7 +42,7 @@ body:
       description: Helps localise the failure fast.
       value: |
         ```
-        for s in render notes gallery export transcript; do
+        for s in render notes gallery export transcript tags; do
           uv run skills/take-notes/scripts/$s.py --selftest
         done
         ```

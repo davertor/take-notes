@@ -6,7 +6,7 @@
 
 ## Checks
 
-- [ ] `for s in render notes gallery export transcript; do uv run skills/take-notes/scripts/$s.py --selftest; done` passes
+- [ ] `for s in render notes gallery export transcript tags; do uv run skills/take-notes/scripts/$s.py --selftest; done` passes
 - [ ] No new third-party dependency (see CONTRIBUTING.md)
 - [ ] English throughout — code, comments, commit messages
 
