@@ -20,7 +20,7 @@ There is no test suite. Each script with non-trivial logic carries its own
 asserts behind `--selftest`, and all of them must pass before a PR:
 
 ```sh
-for s in render notes gallery export transcript tags; do
+for s in render notes gallery export transcript tags retag; do
   uv run skills/take-notes/scripts/$s.py --selftest
 done
 ```

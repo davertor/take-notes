@@ -17,7 +17,7 @@ jobs:
       # the whole test suite. See CONTRIBUTING.md.
       - name: Run script self-checks
         run: |
-          for s in render notes gallery export transcript tags; do
+          for s in render notes gallery export transcript tags retag; do
             echo "--- $s"
             uv run skills/take-notes/scripts/$s.py --selftest
           done

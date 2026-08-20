@@ -52,7 +52,7 @@ UI = {
         "nomatch": "Sin coincidencias.",
         "video": "vídeo",
         "article": "artículo",
-        "built": "{dir} &middot; generado el {today}",
+        "built": "{dir}",
     },
 }
 

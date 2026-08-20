@@ -26,7 +26,9 @@
   --rail:    23rem;
   --label:   7rem;
   --frame:   49rem;
-  --sheet:   96rem;   /* caps rail+content as one unit on wide screens; see .sheet */
+  --sheet:   72rem;   /* = --rail + --frame, the composition's real width, not a
+                          rounder bigger number; see .sheet */
+  --desk:    #e6ddc8; /* the surround past --sheet; deeper than --paper on purpose */
   --grain:   .04;
 }
 @media (prefers-color-scheme: dark) {
@@ -39,16 +41,28 @@
     --ink-70:  #b3aa94;
     --ink-45:  #8d8471;
     --pen:     #f0765a;
+    --desk:    #0d0c08;
     --grain:   .07;
   }
 }
 * { box-sizing: border-box; }
-html { scroll-behavior: smooth; }
+/* Fluid base. Every length in this sheet is in rem, so scaling the root scales
+   the whole composition at once — rail, measure, label gutter, figures, type.
+   That is what makes the layout answer the screen format instead of holding
+   one physical size and letting the surplus pile up as desk: a wide display
+   gets larger type at the same ~66-character measure, not 17px type marooned
+   in a wider void. The measure is capped in characters, never in pixels.
+   Bounds stay in rem so the reader's own browser font-size still scales it
+   (on :root, rem resolves against that preference, not against this rule). */
+html {
+  font-size: clamp(1rem, 0.795rem + 0.284vw, 1.25rem);
+  scroll-behavior: smooth;
+}
 @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
 
 body {
   margin: 0;
-  background: var(--paper);
+  background: var(--desk);
   color: var(--ink);
   font: 400 1.0625rem/1.68 Newsreader, "Iowan Old Style", Georgia, serif;
   font-optical-sizing: auto;
@@ -96,10 +110,21 @@ th {
 /* Cap the whole rail+content composition and centre it as one unit past
    --sheet: growing --frame instead would stretch prose past a comfortable
    line length, and letting only .column centre leaves the extra space
-   stranded to the right of the text with the rail pinned flush left. */
+   stranded to the right of the text with the rail pinned flush left.
+   Centring is only half of it though: with one paper tone running edge to
+   edge there is nothing to mark where the composition stops, so past --sheet
+   the tinted rail reads as a slab floating mid-screen and the leftover width
+   as an accident. The sheet keeps --paper and the surround falls to the
+   deeper --desk, which turns that width into a margin instead of a void.
+   --sheet has to equal --rail + --frame exactly for that to hold: any bigger
+   and .column outgrows article on its own, opening the same unmarked gap a
+   second time *inside* the sheet, split on both sides of the prose — one
+   side doing at least some work as the section-label margin, the other
+   holding nothing. */
 .sheet {
   display: flex; align-items: flex-start; min-height: 100vh;
   max-width: var(--sheet); margin-inline: auto;
+  background: var(--paper);
 }
 
 /* --- Rail ----------------------------------------------------------------- */
@@ -324,12 +349,20 @@ footer a { color: inherit; text-decoration-color: var(--rule); }
   .rail > *, #index { max-width: 34rem; }
   .poster { max-width: 24rem; }
   article { padding-top: 2rem; }
+  /* A benchmark table has a min-content width a phone cannot meet — the note's
+     5-column one bottoms out at 455px. Left alone it sets the page's minimum
+     width and every section scrolls sideways with it. Scroll the table inside
+     its own box instead. max-content + max-width keeps it shrink-to-fit, so a
+     table narrower than the column still looks like a table, not a stretched
+     one. Plain <table> is the note contract (SKILL.md), so this has to work
+     without a wrapper element. */
+  table { display: block; width: max-content; max-width: 100%; overflow-x: auto; }
 }
 
 /* --- Print: it is a study note; it should print like one ------------------ */
 @media print {
   :root {
-    --paper: #fff; --surface: #fff; --raised: #f4f4f4;
+    --paper: #fff; --surface: #fff; --raised: #f4f4f4; --desk: #fff;
     --ink: #000; --ink-70: #333; --ink-45: #555; --rule: #bbb; --pen: #000;
   }
   body::after, nav.spy, .poster, .watch { display: none; }

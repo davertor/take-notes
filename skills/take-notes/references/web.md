@@ -7,6 +7,18 @@ No scripts here: `WebFetch` already converts a page to Markdown, and it is what
 `/notion-summarize-blog` and `/didactic-blog` use in this repo. Don't add an
 extraction dependency for this.
 
+## Try the page's own Markdown export first
+
+Many docs frameworks (GitBook, Mintlify, Docusaurus with the docs-as-markdown
+plugin) publish a clean Markdown copy of every page, usually at `<url>.md`, and
+sometimes point at a whole-site `llms.txt` index. Try `WebFetch` on `<url>.md`
+before the rendered page. When it resolves to real Markdown, use it — it's
+already just the content, so there's no nav/sidebar/footer chrome for the
+extraction pass to filter out, which is less to go wrong. When it 404s,
+redirects to non-Markdown, or the site plainly doesn't use the convention,
+drop it and fetch the normal URL below without a second thought — most sites
+don't support this, and confirming that isn't worth a round trip.
+
 ## Fetch
 
 Call `WebFetch` on the URL, asking it to return the article rather than a
@@ -20,10 +32,28 @@ summary — the note-writing happens back in SKILL.md and needs the real text:
 > report: the title, the author or publishing site, the publication date, and
 > the heading anchors if the page has them.
 
+When the invocation gave a **focus**, narrow this same prompt: ask for the
+complete, verbatim body only of the sections covering it, but still ask for
+every heading on the page — in and out of focus — so the section outline stays
+accurate. On a short, single-topic page this narrows nothing and isn't worth
+the extra prompt clause; it earns its keep on long or multi-topic pages, where
+it can cut what comes back by half or more.
+
 Keep the headings. They become the `## Section outline`, and their anchors are
-what make it clickable. Keep the images too — verified live: `WebFetch` returns
-real, absolute, hotlink-stable image URLs when asked, in document order, with
-captions attached. It returns none of that unasked, so don't drop this line.
+what make it clickable. Keep the images too — `WebFetch` returns real, absolute
+image URLs when asked, in document order, with captions attached. It returns
+none of that unasked, so don't drop this line.
+
+**Before embedding one as a `<figure>`, confirm it actually serves an image:**
+`curl -sI -o /dev/null -w "%{http_code} %{content_type}"` on the URL. A page
+behind bot protection (Cloudflare and similar) returns an HTML challenge page
+instead of image bytes for any out-of-browser request — and critically, no
+header fixes this, because it also blocks the `<img>` tag in the finished
+note for every future reader: an `<img>` is a subresource fetch, not a page
+navigation, so it can never run the challenge's JS, in any browser. When the
+check doesn't come back as an image, drop the `<img>`/`<figure>` and fold
+whatever the caption said into the surrounding prose instead — a broken-image
+icon teaches nothing the sentence next to it didn't already say.
 
 ## Map the response to the Step 1 fields
 
@@ -41,7 +71,9 @@ captions attached. It returns none of that unasked, so don't drop this line.
 in the third person** however firmly you ask for verbatim text — short, terse
 posts are the usual trigger. The tell is prose about the author rather than by
 them: "Evans recommends…", "The author notes…", a tidy bulleted digest where
-the page had paragraphs, or a body far shorter than the page's own length.
+the page had paragraphs, or a body far shorter than the page's own length (or,
+when a focus narrowed the ask, far shorter than the focused sections' own
+length — not the whole page's).
 
 Retry **once**, explicitly forbidding the third person and asking for her actual
 sentences. If the second attempt is still a summary, **stop** — this is a
