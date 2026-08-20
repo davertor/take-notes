@@ -151,6 +151,11 @@ yours rather than whatever the model felt like that day.
 Nothing fits — or no vocabulary is set — and the note lands on `Unknown`,
 silently. You are never prompted to invent a tag mid-run.
 
+<p align="center">
+<a href="docs/gallery-tags.png"><img src="docs/gallery-tags.png" width="820" alt="Gallery with tags — a chip per tag under the filter bar, and each card's primary tag beside its kind in the card foot"></a>
+<br><sub><b>A tagged archive</b> — the primary tag sits beside the kind on each card, and every tag in use gets a chip. The notes are the four real examples; the tags on them are illustrative.</sub>
+</p>
+
 Edit the list from the skill, or from the CLI when you're already in a terminal:
 
 ```sh

@@ -183,7 +183,9 @@ header {
   font-size: .87rem; line-height: 1.5; color: var(--ink-70);
 }
 .card .foot {
-  display: flex; justify-content: space-between; gap: .75rem;
+  /* No justify-content: the date's margin-left:auto already pushes it right,
+     and space-between would fling the tag away from the kind when the row wraps. */
+  display: flex; gap: .75rem; flex-wrap: wrap;
   padding: .55rem 1.1rem .65rem;
   border-top: 1px solid var(--rule);
   font: 400 .64rem/1.4 "JetBrains Mono", ui-monospace, monospace;
@@ -191,10 +193,13 @@ header {
   font-variant-numeric: tabular-nums;
 }
 .card .kind { text-transform: uppercase; color: var(--pen); }
-.card .tag { text-transform: uppercase; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* Kind and tag read as one label pair on the left; the date stays flush right
-   whether or not the note is tagged. */
-.card .date { margin-left: auto; }
+   whether or not the note is tagged. No `overflow: hidden` on the tag — that
+   makes it the item flex shrinks, and a clipped "ENGINEE…" defeats the point
+   of the label. Both keep their full width and the .foot wraps instead, so a
+   long tag pushes the date onto its own line rather than eating itself. */
+.card .tag { text-transform: uppercase; white-space: nowrap; }
+.card .date { margin-left: auto; white-space: nowrap; }
 
 /* --- Empty states --------------------------------------------------------- */
 .blank {
