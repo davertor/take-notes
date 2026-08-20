@@ -8,7 +8,7 @@
 <p align="center">
   <img src="https://img.shields.io/badge/version-1.0.0-ab2f19?style=flat-square&labelColor=191511" alt="Version 1.0.0">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-57503f?style=flat-square&labelColor=191511" alt="MIT license"></a>
-  <img src="https://img.shields.io/badge/agents-5%20supported-57503f?style=flat-square&labelColor=191511" alt="5 agent tools supported">
+  <img src="https://img.shields.io/badge/agents-any%20Agent%20Skills%20host-57503f?style=flat-square&labelColor=191511" alt="Compatible with any Agent Skills host">
   <img src="https://img.shields.io/badge/output-html%20%C2%B7%20md%20%C2%B7%20anki-57503f?style=flat-square&labelColor=191511" alt="Output: HTML, Markdown, Anki">
 </p>
 
@@ -100,7 +100,7 @@ Re-running on the same source the same day **updates** that note rather than
 leaving a near-duplicate beside it.
 
 It runs only when you ask. The skill never fires on a URL you merely mention in
-conversation, in any of the five tools.
+conversation, in any tool it's installed in.
 
 ### Focus
 
@@ -261,9 +261,10 @@ uv run skills/take-notes/scripts/export.py --format anki   # → ~/take-notes/ta
 
 ## Install
 
-Works in **Claude Code, Codex, Cursor, OpenCode, and Gemini CLI** — one
-`SKILL.md`, no per-tool variants. Every script is stdlib-only Python run through
-`uv`; there is nothing to `pip install`.
+Works in **any [Agent Skills](https://agentskills.io)-compatible tool** — Claude
+Code, Codex, Cursor, OpenCode, Gemini CLI, and any other host that reads the
+same standard `SKILL.md` — no per-tool variants to maintain. Every script is
+stdlib-only Python run through `uv`; there is nothing to `pip install`.
 
 **Claude Code** (auto-updates via the marketplace):
 
