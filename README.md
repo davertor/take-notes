@@ -99,12 +99,15 @@ run end to end on an actual video and an actual blog post, not mockups.
 
 ```sh
 /take-notes <url> [focus] [--lang en|es]
+/take-notes --tags | --add-tag "AI" | --remove-tag "AI"
 ```
 
 The optional focus narrows what the notes emphasise (e.g. `"just the API
 design part"`). It writes `~/take-notes/html_reports/YYYY-MM-DD-<slug>.html`
 and opens it — and re-running on the same source the same day **updates** that
 note rather than leaving a near-duplicate beside it.
+
+The second line manages the [tag vocabulary](#tags) instead of writing a note.
 
 It runs only when you ask. The skill never fires on a URL you merely mention in
 conversation, in any of the five tools.
@@ -133,12 +136,45 @@ failing, and an unsupported `--lang` is reported rather than silently applied.
 When the source's language differs from the one used, the skill says so, so a
 Spanish video never quietly becomes English notes without a word.
 
+### Tags
+
+Every note is filed under one **primary tag**, plus any extras that apply. The
+vocabulary lives beside `language` in the same config, and it is **closed**:
+the skill picks from your list and never invents a tag, so the taxonomy stays
+yours rather than whatever the model felt like that day.
+
+```jsonc
+// ~/take-notes/config.json
+{ "language": "es", "tags": ["Unknown", "AI", "Investing", "Engineering"] }
+```
+
+Nothing fits — or no vocabulary is set — and the note lands on `Unknown`,
+silently. You are never prompted to invent a tag mid-run.
+
+Edit the list from the skill, or from the CLI when you're already in a terminal:
+
+```sh
+/take-notes --tags                  # list it
+/take-notes --add-tag "AI"          # add, report, write no note
+/take-notes --remove-tag "AI"       # remove
+
+uv run skills/take-notes/scripts/tags.py --add AI --add Investing
+uv run skills/take-notes/scripts/tags.py --remove Investing
+```
+
+Both edit the same file and leave `language` untouched. `Unknown` is the
+fallback the skill needs, so it can't be removed. Re-tag a note by re-running
+`/take-notes` on its source — same day, same file, new tag.
+
 ### Gallery
 
 Notes pile up. `scripts/gallery.py` reads whatever is in
 `~/take-notes/html_reports/` and writes `~/take-notes/gallery.html` — a card
 per note, newest first, poster for videos and a filing plate for articles,
 with a filter box (`/` focuses it, `Esc` clears it). Then it opens it.
+
+Under the filter bar is a chip per [tag](#tags) in use: click one to narrow the
+grid to that tag, click it again to clear. Chip and text filter combine.
 
 <p align="center">
 <a href="docs/gallery.png"><img src="docs/gallery.png" width="820" alt="Gallery — a grid of note cards, a poster for the video note and numbered filing plates for the articles, above a filter bar"></a>
@@ -175,10 +211,12 @@ uv run skills/take-notes/scripts/export.py --format anki   # → ~/take-notes/ta
 
 - **`md`** — one Markdown file per note with YAML frontmatter. Drop the folder
   into an Obsidian vault, or import it into Notion. Timestamp links survive as
-  real Markdown links.
+  real Markdown links, and the note's tags land in the frontmatter `tags:` list,
+  which is what Obsidian's tag pane reads.
 - **`anki`** — a tab-separated deck file. Cards come from *Key points* (claim →
-  detail), *Concepts* (term → definition), and the one takeaway. Import with
-  **File → Import** and leave *Allow HTML in fields* on.
+  detail), *Concepts* (term → definition), and the one takeaway. The note's tags
+  join the card kind in the tags column, so a deck filters by topic too. Import
+  with **File → Import** and leave *Allow HTML in fields* on.
 
 ## Install
 
@@ -238,7 +276,7 @@ URL.
 git clone https://github.com/davertor/take-notes && cd take-notes
 ./link-skill.sh                                        # edits are live in every tool
 
-for s in render notes gallery export transcript; do    # the whole test suite
+for s in render notes gallery export transcript tags; do    # the whole test suite
   uv run skills/take-notes/scripts/$s.py --selftest
 done
 ```

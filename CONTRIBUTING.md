@@ -20,7 +20,7 @@ There is no test suite. Each script with non-trivial logic carries its own
 asserts behind `--selftest`, and all of them must pass before a PR:
 
 ```sh
-for s in render notes gallery export transcript; do
+for s in render notes gallery export transcript tags; do
   uv run skills/take-notes/scripts/$s.py --selftest
 done
 ```
@@ -74,6 +74,7 @@ styling:
 | Landmark | In | Read by |
 |---|---|---|
 | `.poster`, `.kicker`, `.meta`, `.watch` | both note templates | the masthead parser |
+| `.tags` / `.tag` / `.tag.is-primary` | both note templates | the tag parser, and the gallery's chips |
 | `<article id="body">` with a flat run of `<h2>` | both note templates | the section splitter |
 | `<li><strong>term</strong> — definition</li>` | `SKILL.md` Key points / Concepts | the Anki card builder |
 
