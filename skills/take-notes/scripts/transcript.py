@@ -213,6 +213,12 @@ def main() -> int:
     if not args.source:
         ap.error("source is required")
 
+    # The transcript is piped into the skill, and a redirected stdout encodes
+    # with the locale codec on Windows (cp1252) — non-ASCII captions or a
+    # non-ASCII title would raise UnicodeEncodeError mid-dump.
+    sys.stdout.reconfigure(encoding="utf-8")
+    sys.stderr.reconfigure(encoding="utf-8")
+
     # An explicit --out-dir is the caller's to manage; a tempdir is ours, so we
     # delete it. Captions plus the yt-dlp metadata dump run to ~650KB per video,
     # which otherwise accumulates in /var/folders forever.

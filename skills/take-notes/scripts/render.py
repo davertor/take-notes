@@ -437,7 +437,9 @@ def main() -> int:
     if not args.title:
         ap.error("--title is required")
 
-    body = sys.stdin.read()
+    # Decode explicitly: text-mode stdin follows the locale on Windows (cp1252),
+    # which turns UTF-8 body bytes into mojibake the UTF-8 write then bakes in.
+    body = sys.stdin.buffer.read().decode("utf-8")
     if not body.strip():
         print("render: no body HTML on stdin", file=sys.stderr)
         return 1
