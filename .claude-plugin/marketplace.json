@@ -11,7 +11,7 @@
     {
       "name": "take-notes",
       "description": "Turn a YouTube video, web article, arXiv paper, or GitHub repo into didactic study notes as a self-contained HTML page, kept in a browsable local archive.",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "author": {
         "name": "Daniel Verdu",
         "url": "https://github.com/davertor"

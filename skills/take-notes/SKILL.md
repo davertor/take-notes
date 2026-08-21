@@ -5,7 +5,7 @@ license: MIT
 compatibility: Requires uv. Video sources also need yt-dlp and ffmpeg, plus network access; an optional Groq or OpenAI key enables Whisper for videos without captions.
 metadata:
   author: davertor
-  version: "1.0.0"
+  version: "1.0.1"
 # Claude Code extensions below — not in the agentskills.io spec, and read at the
 # top level rather than under `metadata`, which is where Claude Code looks.
 # `allowed-tools` stays comma-separated: the spec asks for spaces but marks the
