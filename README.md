@@ -49,11 +49,8 @@ plain HTML that will still open in ten years.
 </table>
 
 <p align="center">
+  <a href="#why-i-built-it">Why I built it</a> ·
   <a href="#how-to-use">How to use</a> ·
-  <a href="#sources">Sources</a> ·
-  <a href="#focus">Focus</a> ·
-  <a href="#tags">Tags</a> ·
-  <a href="#export">Export</a> ·
   <a href="#install">Install</a> ·
   <a href="#gallery">Gallery</a> ·
   <a href="#credits">Credits</a>
