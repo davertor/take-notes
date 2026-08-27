@@ -14,7 +14,7 @@
 
 **Notes you can actually learn from — not a transcript dump, not a one-paragraph summary.**
 
-Point it at a video, an article, a paper, or a repo. You get a self-contained
+Point it at a video, an article, a paper, a slide deck, or a repo. You get a self-contained
 HTML page — executive summary, the one takeaway, key points, and a timestamped
 or sectioned outline — written to `~/take-notes/html_reports/` and opened in
 your browser. They pile up into a browsable archive you own, on your disk, in
@@ -79,6 +79,7 @@ Point it at a URL. That is the whole thing:
 /take-notes https://www.youtube.com/watch?v=NiKtZgImBdY
 /take-notes https://simonwillison.net/2025/Jan/11/phi-4-bug-fixes/
 /take-notes https://arxiv.org/abs/2407.09141
+/take-notes https://docs.google.com/presentation/d/1hcGZ4U9TjZZzcGNbH2K6wYD45qwZTyo_gosCQsnHlnc/edit
 /take-notes https://github.com/ggml-org/llama.cpp
 ```
 
@@ -97,6 +98,7 @@ conversation, in any tool it's installed in.
 | **Local media** | video or audio already on disk |
 | **Web articles** | blog posts, docs pages, news articles |
 | **arXiv papers** | full text via arXiv's HTML rendering, not just the abstract |
+| **Google Slides** | slide text plus the speaker notes, and the deck's diagrams as figures |
 | **GitHub repos** | an orientation note: what it does, how it's laid out, what to read first |
 
 ### Focus
@@ -278,7 +280,8 @@ folder instead of your user directories. Update with `npx skills update take-not
 | **Whisper API key**                  | optional, only for videos without captions — Groq or OpenAI, read from `~/.config/watch/.env` |
 
 
-Web articles need none of the above — that path uses the agent's fetch tool.
+Web articles need none of the above — that path uses the agent's fetch tool —
+and Google Slides needs only `uv`: the deck reader is standard library, no API key.
 
 Both install paths land on the same `/take-notes` — neither namespaces nor
 renames it.
