@@ -79,6 +79,11 @@ styling:
 | `<article id="body">` with a flat run of `<h2>` | both note templates | the section splitter |
 | `<li><strong>term</strong> — definition</li>` | `SKILL.md` Key points / Concepts | the Anki card builder |
 
+`.sources` — the companion links a multi-source note carries — is deliberately
+**not** part of that contract and must never be given `class="watch"`: the
+masthead parser takes the first `.watch` href as the note's source, and would
+file a combined note under its companion instead of its primary.
+
 Rename a class or change that list shape and `notes.py --selftest` fails, which
 is the point. Run it after touching a template or the Sections part of
 `SKILL.md`.

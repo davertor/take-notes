@@ -6,7 +6,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-1.1.0-ab2f19?style=flat-square&labelColor=191511" alt="Version 1.1.0">
+  <img src="https://img.shields.io/badge/version-1.2.0-ab2f19?style=flat-square&labelColor=191511" alt="Version 1.2.0">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-57503f?style=flat-square&labelColor=191511" alt="MIT license"></a>
   <img src="https://img.shields.io/badge/agents-any%20Agent%20Skills%20host-57503f?style=flat-square&labelColor=191511" alt="Compatible with any Agent Skills host">
   <img src="https://img.shields.io/badge/output-html%20%C2%B7%20md%20%C2%B7%20anki-57503f?style=flat-square&labelColor=191511" alt="Output: HTML, Markdown, Anki">
@@ -14,7 +14,8 @@
 
 **Notes you can actually learn from — not a transcript dump, not a one-paragraph summary.**
 
-Point it at a video, an article, a paper, a slide deck, or a repo. You get a self-contained
+Point it at a video, an article, a paper, a slide deck, or a repo — or at
+several at once, and they fold into one note. You get a self-contained
 HTML page — executive summary, the one takeaway, key points, and a timestamped
 or sectioned outline — written to `~/take-notes/html_reports/` and opened in
 your browser. They pile up into a browsable archive you own, on your disk, in
@@ -101,6 +102,30 @@ conversation, in any tool it's installed in.
 | **Google Slides** | slide text plus the speaker notes, and the deck's diagrams as figures |
 | **GitHub repos** | an orientation note: what it does, how it's laid out, what to read first |
 
+### Several sources, one note
+
+Pass more than one URL and they combine into a **single** note — a talk and the
+deck it was given from, a paper and the repo that implements it:
+
+```sh
+/take-notes https://youtu.be/rNgUoH7Wbv8 https://docs.google.com/presentation/d/1hcGZ…/edit
+```
+
+Any mix of the sources above works, and the note reads them against each other
+rather than stapling two summaries together: overlap is written once from
+whichever source explains it better, and the gaps are the point — the diagram
+that is on a slide and in no transcript, the number said out loud that is on no
+slide. Where the two disagree, the note says so.
+
+The **first URL is the primary source**. It gives the note its title, byline and
+layout — lead with the video for the two-pane note with a poster and clickable
+timestamps, lead with the deck or the article for the reading layout. The rest
+are listed under the source link in the rail, and stay traceable inline: a point
+that came from slide 7 links to slide 7.
+
+If a companion source can't be fetched, the note is still written from the rest
+and says what was missing. If the *primary* can't be, the run stops.
+
 ### Focus
 
 Add a phrase after the URL and the run narrows to it:
@@ -165,7 +190,7 @@ silently. You are never prompted to invent a tag mid-run.
 The full grammar, for reference:
 
 ```sh
-/take-notes <url> [focus] [--lang en|es]
+/take-notes <url> [more urls…] [focus] [--lang en|es]
 /take-notes --tags | --add-tag "AI" | --remove-tag "AI" | --retag
 ```
 

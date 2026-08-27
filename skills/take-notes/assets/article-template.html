@@ -186,6 +186,19 @@ h1 {
 .watch span { transition: transform .2s ease; }
 .watch:hover span { transform: translateX(2px); }
 
+/* Companion sources, when the note was taken from more than one: stacked under
+   the primary link in the same mono register, muted, so the source the note is
+   *about* keeps the emphasis. */
+.sources { display: flex; flex-direction: column; gap: .45rem; margin: .95rem 0 0; }
+.sources a {
+  font: 500 .64rem/1 "JetBrains Mono", ui-monospace, monospace;
+  letter-spacing: .07em; text-transform: uppercase;
+  color: var(--ink-45); text-decoration: none;
+  transition: color .2s ease;
+}
+.sources a::before { content: "+ "; color: var(--rule); }
+.sources a:hover { color: var(--pen); }
+
 /* Tags: the note's shelf label, in the same mono register as .kicker so the
    rail keeps one voice. The primary one is in pen — it is what the gallery
    files the note under; the rest are muted extras. */
@@ -313,6 +326,7 @@ footer a { color: inherit; text-decoration-color: var(--rule); }
   h1 { animation-delay: .07s; }
   .meta { animation-delay: .11s; }
   .watch { animation-delay: .15s; }
+  .sources { animation-delay: .16s; }
   .tags { animation-delay: .17s; }
   #index { animation-delay: .19s; }
   nav.spy { animation-delay: .08s; }
@@ -361,7 +375,7 @@ footer a { color: inherit; text-decoration-color: var(--rule); }
     --paper: #fff; --surface: #fff; --raised: #f4f4f4; --desk: #fff;
     --ink: #000; --ink-70: #333; --ink-45: #555; --rule: #bbb; --pen: #000;
   }
-  body::after, nav.spy, .watch { display: none; }
+  body::after, nav.spy, .watch, .sources { display: none; }
   .sheet { display: block; }
   .rail {
     width: auto; height: auto; position: static; padding: 0 0 1.25rem;
@@ -386,6 +400,7 @@ footer a { color: inherit; text-decoration-color: var(--rule); }
     <h1>{{TITLE}}</h1>
     <p class="meta">{{META}}</p>
     <a class="watch" href="{{URL}}" target="_blank" rel="noopener">{{OPEN}} <span>&#8594;</span></a>
+    {{SOURCES}}
     {{TAGS}}
     <div id="index"></div>
   </aside>
