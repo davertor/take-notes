@@ -20,7 +20,7 @@ There is no test suite. Each script with non-trivial logic carries its own
 asserts behind `--selftest`, and all of them must pass before a PR:
 
 ```sh
-for s in render notes gallery export transcript tags retag; do
+for s in render notes gallery export transcript tags retag slides; do
   uv run skills/take-notes/scripts/$s.py --selftest
 done
 ```
@@ -62,8 +62,9 @@ adding one guide and one routing row — never a second copy of the writing
 rules, which would immediately drift from the first.
 
 The routing table in `SKILL.md` Step 1 is matched **top to bottom, first match
-wins**. `arxiv.org` and `github.com` are `http(s)` pages, so they must stay
-above the catch-all `web.md` row or they will never be reached.
+wins**. `arxiv.org`, `docs.google.com/presentation` and `github.com` are
+`http(s)` pages, so they must stay above the catch-all `web.md` row or they will
+never be reached.
 
 ### 3. The note templates are a machine-readable contract
 

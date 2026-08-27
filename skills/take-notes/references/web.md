@@ -45,7 +45,8 @@ image URLs when asked, in document order, with captions attached. It returns
 none of that unasked, so don't drop this line.
 
 **Before embedding one as a `<figure>`, confirm it actually serves an image:**
-`curl -sI -o /dev/null -w "%{http_code} %{content_type}"` on the URL. A page
+`curl -sIL -o /dev/null -w "%{http_code} %{content_type}"` on the URL — with
+`-L`, since a CDN that answers a redirect is not a failure. A page
 behind bot protection (Cloudflare and similar) returns an HTML challenge page
 instead of image bytes for any out-of-browser request — and critically, no
 header fixes this, because it also blocks the `<img>` tag in the finished

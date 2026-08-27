@@ -5,7 +5,7 @@ license: MIT
 compatibility: Requires uv. Video sources also need yt-dlp and ffmpeg, plus network access; an optional Groq or OpenAI key enables Whisper for videos without captions.
 metadata:
   author: davertor
-  version: "1.0.1"
+  version: "1.1.0"
 # Claude Code extensions below — not in the agentskills.io spec, and read at the
 # top level rather than under `metadata`, which is where Claude Code looks.
 # `allowed-tools` stays comma-separated: the spec asks for spaces but marks the
@@ -104,13 +104,14 @@ regenerated, so it costs the listing and the model's choices, nothing more.
 Pick **one** reference by looking at the source, Read it, and follow it. Only the
 acquisition differs; everything after Step 2 is identical for every source.
 
-Match **top to bottom and stop at the first row that fits** — arXiv and GitHub
-links are `http(s)` pages too, so the catch-all row would swallow them.
+Match **top to bottom and stop at the first row that fits** — arXiv, Slides and
+GitHub links are `http(s)` pages too, so the catch-all row would swallow them.
 
 | Source | Read |
 |---|---|
 | YouTube URL, any other video URL yt-dlp supports, or a local media file | `references/youtube.md` |
 | `arxiv.org` (or an `ar5iv` / arXiv DOI link) — a paper | `references/arxiv.md` |
+| `docs.google.com/presentation/...` — a slide deck | `references/slides.md` |
 | `github.com/<owner>/<repo>` — a repository root, not a file, PR, or issue | `references/github.md` |
 | Any other `http(s)` page — blog post, docs page, news article | `references/web.md` |
 
@@ -123,7 +124,7 @@ Each guide hands back the same thing, and nothing more:
   date for a paper, latest release for a repo
 - **canonical URL** (plus the YouTube video ID when there is one)
 - **body** — the timestamped transcript, the article text, the paper full text,
-  or the README plus the repo's structure
+  the deck's slides and speaker notes, or the README plus the repo's structure
 
 Video sources also hand back, when yt-dlp reports them: **channel URL**,
 **published** date, **views**, a **thumbnail** URL, and the **caption language**.
@@ -302,14 +303,17 @@ Optional — include only when the source actually earns it, never as an empty h
 - `<h2>Going deeper</h2>` — what the source leaves open: unanswered questions,
   claims made without evidence, and the concrete next thing to read or try.
 
-**Article figures** — `references/web.md` returns any diagrams, charts, or
-screenshots the source page had. Include one only when it is load-bearing —
-the diagram *is* the explanation, the chart *is* the evidence — never a
-decorative photo, a header banner, or an author headshot. Cap at 3, the same
-"more than that is a dump" discipline as Key Points. Not a section of its
-own: place `<figure><img src="<url>" alt="<alt text>"><figcaption>caption</figcaption></figure>`
+**Source figures** — `web.md` and `arxiv.md` return the diagrams, charts, and
+screenshots the page carried; `slides.md` returns an image URL for every slide.
+Include one only when it is load-bearing — the diagram *is* the explanation, the
+chart *is* the evidence — never a decorative photo, a header banner, an author
+headshot, or (for a deck) a slide that is just bullets you already wrote out.
+Cap at 3, the same "more than that is a dump" discipline as Key Points. Not a
+section of its own: place
+`<figure><img src="<url>" alt="<alt text>"><figcaption>caption</figcaption></figure>`
 inline, in whichever section it supports — most often *How it works*, *Key
-points*, or *Concepts*.
+points*, or *Concepts*. Each guide says how to confirm the URL really serves an
+image before you embed it; a broken-image icon teaches nothing.
 
 ## Rules
 
@@ -329,7 +333,7 @@ points*, or *Concepts*.
   in Step 2; the structure doesn't change. Pass the matching `--lang` (`en` or `es`)
   to the renderer.
 - **Keep the HTML plain:** headings, paragraphs, lists, `<strong>`, `<em>`, links,
-  `<pre><code>`, `<blockquote>`, simple tables, and (articles only)
+  `<pre><code>`, `<blockquote>`, simple tables, and (every source but video)
   `<figure><img><figcaption>` for a source figure. No inline `style` attributes, no
   `<script>`, no classes — the stylesheet already handles presentation, and a note
   that fights it will look wrong in dark mode.
