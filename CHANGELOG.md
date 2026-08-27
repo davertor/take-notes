@@ -5,6 +5,31 @@ All notable changes to this project are documented here, in the
 release adds a section here, bumps `skills/take-notes/SKILL.md`'s `version`,
 and tags — see [CONTRIBUTING.md](CONTRIBUTING.md).
 
+## [1.2.0]
+
+### Added
+
+- **Several sources, one note.** `/take-notes <url> <url> …` combines a talk and
+  the deck it was given from, or a paper and the repo that implements it, into a
+  single set of notes rather than one note per source. Each URL is routed
+  through its own acquisition guide; everything after that stays as it was — one
+  language, one tag, one body, one file.
+- The **first URL is the primary source**: it gives the note its title, byline,
+  span, canonical URL and layout, so leading with the video gets the two-pane
+  note with a poster and clickable timestamps and leading with the deck gets the
+  reading layout. Order is the user's control over that, deliberately in place
+  of a heuristic that promotes whichever source looks richest.
+- `render.py` takes `--source "<label>" "<url>"`, repeatable, and both note
+  templates render the companions as a muted list under the source link.
+- SKILL.md now says how to read several sources **against each other** — write
+  overlap once from whichever source explains it better, treat the gaps as the
+  reason the sources were combined, and attribute contradictions to both — and
+  forbids organising the notes by source. The outline still follows the primary
+  source alone; companions stay traceable through inline deep links (a slide's
+  `#slide=id.<PAGE_ID>`, a video's `?t=<seconds>s`).
+- A companion that yields no body is reported and skipped rather than failing
+  the run; only a primary that yields nothing stops it.
+
 ## [1.1.0]
 
 ### Added
