@@ -155,6 +155,25 @@ def tags_html(tags: list[str] | None) -> str:
     return f'<p class="tags">{spans}</p>'
 
 
+def sources_html(sources: list[tuple[str, str]] | None) -> str:
+    """The rail's companion-source row: one muted link per extra source.
+
+    A note can combine several sources — a talk and its deck, a paper and the
+    repo that implements it. `--url` stays the primary one: it drives the
+    layout, the poster, and what the gallery files the note under. These are
+    the others, in the order the skill passed them, and they deliberately do
+    **not** carry `class="watch"` — notes.py reads the primary source back out
+    of that class.
+    """
+    links = "".join(
+        f'<a href="{html.escape(url.strip(), quote=True)}" target="_blank" rel="noopener">'
+        f"{html.escape(label.strip())}</a>"
+        for label, url in (sources or [])
+        if label and label.strip() and url and url.strip()
+    )
+    return f'<p class="sources">{links}</p>' if links else ""
+
+
 def slugify(title: str, maxlen: int = 60) -> str:
     """Filename-safe ASCII slug; falls back to 'notes' when nothing survives."""
     folded = unicodedata.normalize("NFKD", title)
@@ -176,6 +195,7 @@ def build_article_document(
     url: str | None = None,
     lang: str = "en",
     tags: list[str] | None = None,
+    sources: list[tuple[str, str]] | None = None,
     today: str | None = None,
 ) -> str:
     today = today or datetime.date.today().isoformat()
@@ -188,6 +208,7 @@ def build_article_document(
         "{{BYLINE}}": html.escape(byline) if byline else "",
         "{{URL}}": html.escape(url or "", quote=True),
         "{{META}}": build_article_meta(span, reading_time),
+        "{{SOURCES}}": sources_html(sources),
         "{{TAGS}}": tags_html(tags),
         "{{BODY}}": body.strip(),
         "{{OPEN}}": html.escape(strings["open"]),
@@ -237,6 +258,7 @@ def build_video_document(
     views: str | None = None,
     lang: str = "en",
     tags: list[str] | None = None,
+    sources: list[tuple[str, str]] | None = None,
     today: str | None = None,
 ) -> str:
     thumb = thumbnail or (f"https://i.ytimg.com/vi/{video_id}/hqdefault.jpg" if video_id else "")
@@ -249,6 +271,7 @@ def build_video_document(
         "{{THUMBNAIL}}": html.escape(thumb, quote=True),
         "{{URL}}": html.escape(url or "", quote=True),
         "{{META}}": build_video_meta(byline, channel_url, span, published, views),
+        "{{SOURCES}}": sources_html(sources),
         "{{TAGS}}": tags_html(tags),
         "{{BODY}}": body.strip(),
         "{{WATCH}}": html.escape(strings["watch"]),
@@ -394,6 +417,31 @@ def _selftest() -> int:
         "an untagged render gets no tag row at all, not an Unknown badge"
     )
 
+    # Companion sources: one muted link each, never class="watch" — notes.py
+    # reads the primary source back out of that class and would pick the wrong
+    # one. No --source at all leaves the rail exactly as it was.
+    combined = sources_html([("Slides", "https://docs.google.test/d/1?a=1&b=2")])
+    assert combined.startswith('<p class="sources">') and ">Slides</a>" in combined
+    assert "a=1&amp;b=2" in combined, "companion URLs are escaped"
+    assert 'class="watch"' not in combined
+    assert sources_html(None) == "" and sources_html([]) == ""
+    assert sources_html([("  ", "https://x.test")]) == "", "a label-less source is dropped"
+    assert sources_html([("Deck", "  ")]) == "", "a URL-less source is dropped"
+    assert '<p class="sources">' not in article_doc, "no --source means no companion row"
+    assert '<p class="sources">' not in video_doc
+    for doc in (
+        build_video_document(
+            "T", "<h2>S</h2><p>ok</p>", url="https://youtu.be/a", video_id="a",
+            sources=[("Slides", "https://docs.google.test/d/1")], today="2026-01-01",
+        ),
+        build_article_document(
+            "T", "<h2>S</h2><p>ok</p>", url="https://x.test",
+            sources=[("Slides", "https://docs.google.test/d/1")], today="2026-01-01",
+        ),
+    ):
+        assert '<p class="sources">' in doc, "both layouts carry the companion row"
+        assert "{{" not in doc
+
     assert build_article_meta(None, None) == ""
     assert build_article_meta("Jan 1, 2026", None) == "Jan 1, 2026"
     assert "&middot;" in build_article_meta("Jan 1, 2026", "6 min read")
@@ -410,7 +458,11 @@ def main() -> int:
     ap.add_argument("--title", help="Note title, used for <h1> and the filename")
     ap.add_argument("--byline", default=None, help="Channel, author, or site")
     ap.add_argument("--span", default=None, help="Duration for video, date for an article")
-    ap.add_argument("--url", default=None, help="Canonical source URL")
+    ap.add_argument("--url", default=None, help="Canonical URL of the primary source")
+    ap.add_argument(
+        "--source", action="append", nargs=2, metavar=("LABEL", "URL"), default=None,
+        help="Companion source combined into this note; repeatable",
+    )
     ap.add_argument(
         "--video-id", default=None,
         help="YouTube video ID; presence switches to the two-pane video layout",
@@ -458,12 +510,13 @@ def main() -> int:
             byline=args.byline, channel_url=args.channel_url, span=span, url=args.url,
             video_id=args.video_id, thumbnail=args.thumbnail,
             published=published, views=views, lang=args.lang, tags=args.tag,
+            sources=args.source,
         )
     else:
         document = build_article_document(
             args.title, body,
             byline=args.byline, span=args.span, url=args.url, lang=args.lang,
-            tags=args.tag,
+            tags=args.tag, sources=args.source,
         )
 
     # Re-running on the same source the same day updates that note rather than

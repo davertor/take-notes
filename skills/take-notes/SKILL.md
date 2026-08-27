@@ -1,6 +1,6 @@
 ---
 name: take-notes
-description: Turn a YouTube video or a web article into didactic study notes, written as a self-contained HTML page under ~/take-notes/html_reports and opened in the browser.
+description: Turn a YouTube video, a web article, or several sources at once into one set of didactic study notes, written as a self-contained HTML page under ~/take-notes/html_reports and opened in the browser.
 license: MIT
 compatibility: Requires uv. Video sources also need yt-dlp and ffmpeg, plus network access; an optional Groq or OpenAI key enables Whisper for videos without captions.
 metadata:
@@ -11,7 +11,7 @@ metadata:
 # `allowed-tools` stays comma-separated: the spec asks for spaces but marks the
 # field experimental ("support may vary"), and commas are what Claude Code
 # parses today. Do not "correct" either without testing in Claude Code first.
-argument-hint: "<video-or-article-url> [focus] [--lang en|es] | --tags | --add-tag X | --remove-tag X | --retag"
+argument-hint: "<url> [more-urls…] [focus] [--lang en|es] | --tags | --add-tag X | --remove-tag X | --retag"
 allowed-tools: Bash, Read, WebFetch, AskUserQuestion
 disable-model-invocation: true
 ---
@@ -23,7 +23,10 @@ one-paragraph summary. The output is one self-contained HTML page written to
 `~/take-notes/html_reports/` and opened in the browser, so the notes accumulate
 into a browsable local archive instead of scrolling away in the terminal.
 
-Invocation: `/take-notes <url> [focus]`. If no URL is given, ask for one.
+Invocation: `/take-notes <url> [more urls…] [focus]`. If no URL is given, ask for
+one. Several URLs are **one note about one subject from several sources** — a
+talk and the deck it was given from, a paper and the repo that implements it —
+not one note each; Step 1 says how they combine.
 The optional focus does two things: it narrows what Step 1 asks the source for
 — on a long or multi-topic source, that's the difference between fetching the
 whole thing and fetching only the part that matters — and it narrows what the
@@ -101,8 +104,8 @@ regenerated, so it costs the listing and the model's choices, nothing more.
 
 ## Step 1 — route to the right acquisition guide
 
-Pick **one** reference by looking at the source, Read it, and follow it. Only the
-acquisition differs; everything after Step 2 is identical for every source.
+Pick **one** reference per source by looking at it, Read it, and follow it. Only
+the acquisition differs; everything after Step 2 is identical for every source.
 
 Match **top to bottom and stop at the first row that fits** — arXiv, Slides and
 GitHub links are `http(s)` pages too, so the catch-all row would swallow them.
@@ -138,6 +141,27 @@ are unreliable and quotes are twice-removed from what was said.
 
 If a guide reports it could not get the body, **say so and stop**. Never write
 notes from a title, a description, or a paywall stub.
+
+### More than one source
+
+Route **each** URL through its own row above and collect the same field set for
+each. Fetching is the only part that repeats: from Step 2 on there is one
+language, one tag, one body, one note.
+
+The **first URL is the primary source**. Everything the note's chrome shows
+comes from it — title, byline, span, canonical URL — and it picks the layout: a
+video first renders the two-pane video note with a poster and timestamps, a
+deck, paper or article first renders the article one. The rest are
+**companions**: they contribute body, and Step 5 links them in the rail. Order
+is the user's control over that, so take it literally rather than promoting the
+richest source.
+
+A **companion** that yields no body is not fatal: name it, say the notes are
+poorer for it, and write from what did arrive. A **primary** that yields no body
+stops the run — the note would be filed under a source it was not written from.
+
+A focus narrows every source at once, which is where it earns the most: two
+full-length sources is the largest input this skill ever takes.
 
 Do not put note-writing guidance in the reference files, and do not put
 acquisition detail here. Two copies of the writing standard will drift.
@@ -220,6 +244,19 @@ that they didn't before? That answer is the takeaway, and everything else
 supports it. Note where the source explains a mechanism (goes in *How it works*),
 defines jargon (*Concepts*), or leaves something unresolved (*Going deeper*).
 
+With several sources, read them **against each other** before writing — that
+comparison is the whole reason they were combined:
+
+- **Overlap** — write it once, from whichever source explains it better. A deck
+  bullet and the sentence spoken over it are one point, not two.
+- **Gaps** — a figure that is on a slide and in no transcript, a number said out
+  loud that is on no slide. These are what the second source bought.
+- **Contradictions** — say so and attribute both. A talk that updates its own
+  deck is worth a line in *Going deeper*.
+
+Never organise the notes by source. One set of sections, ordered by what has to
+be understood first; a reader should not be able to tell where the seam was.
+
 ## Step 4 — write the notes as HTML
 
 Use the sections below. Write **body HTML only** — no `<html>`, `<head>`,
@@ -245,6 +282,20 @@ HTML
 
 Pass one `--tag` per tag chosen in Step 2, **primary first** — `--tag AI --tag
 Engineering`. With no `--tag` at all the note is filed under `Unknown`.
+
+The masthead flags describe the **primary** source. When the run combined
+several, add one `--source "<label>" "<url>"` per companion, in the order they
+were given:
+
+```bash
+--source "Slides" "https://docs.google.com/presentation/d/<DECK_ID>/edit"
+```
+
+They render as a short muted list under the source link. The label names the
+**kind** of source — `Slides`, `Paper`, `Repo`, `Video`, `Article` — in the
+note's own language; the title is already the `<h1>`, and repeating it there
+tells the reader nothing. A companion the run failed to fetch gets no `--source`
+entry: the rail lists what the notes were written from.
 
 For video sources, also pass whichever of `--video-id <id>`, `--thumbnail <url>`,
 `--channel-url <url>`, `--published <YYYYMMDD>`, `--views <int>`,
@@ -292,6 +343,11 @@ they come from the renderer flags.
      heading in `<a href="<URL>#anchor">` when the page has stable anchors.
 
    Aim for 6–15 entries either way; group adjacent material covering one idea.
+
+   The outline follows the **primary** source only — it is one source's spine,
+   and interleaving two makes it navigate neither. A companion stays traceable
+   through inline deep links wherever a point comes from it: a slide's
+   `<a href="<deck URL>#slide=id.<PAGE_ID>">`, a video's `?t=<seconds>s`.
 
 Optional — include only when the source actually earns it, never as an empty heading:
 
