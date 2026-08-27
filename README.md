@@ -49,13 +49,13 @@ plain HTML that will still open in ten years.
 </table>
 
 <p align="center">
-  <a href="#sources">Sources</a> ·
   <a href="#how-to-use">How to use</a> ·
+  <a href="#sources">Sources</a> ·
   <a href="#focus">Focus</a> ·
-  <a href="#gallery">Gallery</a> ·
   <a href="#tags">Tags</a> ·
   <a href="#export">Export</a> ·
   <a href="#install">Install</a> ·
+  <a href="#gallery">Gallery</a> ·
   <a href="#credits">Credits</a>
 </p>
 
@@ -73,16 +73,6 @@ someone who already watched the video would understand has failed. Order things
 by what has to be understood first, not by when they were said. Say what the
 source left unanswered. And keep every note as one HTML file on my own disk,
 because notes that live in someone else's product stop being yours eventually.
-
-## Sources
-
-| | |
-|---|---|
-| **YouTube** | any video URL, including the many non-YouTube sites yt-dlp supports |
-| **Local media** | video or audio already on disk |
-| **Web articles** | blog posts, docs pages, news articles |
-| **arXiv papers** | full text via arXiv's HTML rendering, not just the abstract |
-| **GitHub repos** | an orientation note: what it does, how it's laid out, what to read first |
 
 ## How to use
 
@@ -102,6 +92,16 @@ leaving a near-duplicate beside it.
 It runs only when you ask. The skill never fires on a URL you merely mention in
 conversation, in any tool it's installed in.
 
+### Sources
+
+| | |
+|---|---|
+| **YouTube** | any video URL, including the many non-YouTube sites yt-dlp supports |
+| **Local media** | video or audio already on disk |
+| **Web articles** | blog posts, docs pages, news articles |
+| **arXiv papers** | full text via arXiv's HTML rendering, not just the abstract |
+| **GitHub repos** | an orientation note: what it does, how it's laid out, what to read first |
+
 ### Focus
 
 Add a phrase after the URL and the run narrows to it:
@@ -118,39 +118,6 @@ and **what the finished notes emphasise**. It pays on a docs page that stacks
 several versions of itself, a paper where you want one section, or a two-hour
 video where twenty minutes matter; a short single-topic post has nothing to
 trim. Leave it off to cover a source in full.
-
-### Gallery
-
-Notes pile up. `scripts/gallery.py` reads whatever is in
-`~/take-notes/html_reports/` and writes `~/take-notes/gallery.html` — a card
-per note, newest first, poster for videos and a filing plate for articles,
-with a filter box (`/` focuses it, `Esc` clears it). Then it opens it.
-
-Under the filter bar is a chip per [tag](#tags) in use: click one to narrow the
-grid to that tag, click it again to clear. Chip and text filter combine.
-
-<p align="center">
-<a href="docs/gallery.png"><img src="docs/gallery.png" width="820" alt="Gallery — a grid of note cards, a poster for the video note and numbered filing plates for the articles, above a filter bar"></a>
-<br><sub><b>The gallery</b> — the four notes in <a href="docs/examples"><code>docs/examples/</code></a>, every one of them real output. Clone the repo and open any of them to see a note in full.</sub>
-</p>
-
-```sh
-uv run ~/.claude/skills/take-notes/scripts/gallery.py   # or your checkout path
-```
-
-Worth an alias, since you'll run it more than once:
-
-```sh
-alias notes='uv run ~/.claude/skills/take-notes/scripts/gallery.py'
-```
-
-It's a **plain script, not a skill** — building an index of files on disk needs
-no model in the loop, so no agent is involved and nothing is spent. Re-run it
-after taking notes; it rebuilds from scratch every time, so a note you delete
-by hand simply stops appearing.
-
-Flags: `--no-open`, `--notes-dir`, `--out`, `--lang en|es` (defaults to the
-`language` in `~/take-notes/config.json`).
 
 ### Language
 
@@ -318,6 +285,39 @@ Web articles need none of the above — that path uses the agent's fetch tool.
 
 Both install paths land on the same `/take-notes` — neither namespaces nor
 renames it.
+
+## Gallery
+
+Notes pile up. `scripts/gallery.py` reads whatever is in
+`~/take-notes/html_reports/` and writes `~/take-notes/gallery.html` — a card
+per note, newest first, poster for videos and a filing plate for articles,
+with a filter box (`/` focuses it, `Esc` clears it). Then it opens it.
+
+Under the filter bar is a chip per [tag](#tags) in use: click one to narrow the
+grid to that tag, click it again to clear. Chip and text filter combine.
+
+<p align="center">
+<a href="docs/gallery.png"><img src="docs/gallery.png" width="820" alt="Gallery — a grid of note cards, a poster for the video note and numbered filing plates for the articles, above a filter bar"></a>
+<br><sub><b>The gallery</b> — the four notes in <a href="docs/examples"><code>docs/examples/</code></a>, every one of them real output. Clone the repo and open any of them to see a note in full.</sub>
+</p>
+
+```sh
+uv run ~/.claude/skills/take-notes/scripts/gallery.py   # or your checkout path
+```
+
+Worth an alias, since you'll run it more than once:
+
+```sh
+alias notes='uv run ~/.claude/skills/take-notes/scripts/gallery.py'
+```
+
+It's a **plain script, not a skill** — building an index of files on disk needs
+no model in the loop, so no agent is involved and nothing is spent. Re-run it
+after taking notes; it rebuilds from scratch every time, so a note you delete
+by hand simply stops appearing.
+
+Flags: `--no-open`, `--notes-dir`, `--out`, `--lang en|es` (defaults to the
+`language` in `~/take-notes/config.json`).
 
 ## Credits
 
