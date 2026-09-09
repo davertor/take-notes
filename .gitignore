@@ -1,4 +1,14 @@
 __pycache__/
 *.pyc
 .DS_Store
+
+# Tool state, per-machine. Both are ignored here rather than left to the local
+# environment: .claude/ only because of a personal global ignore, .ruff_cache/
+# only because ruff writes its own .gitignore inside it — neither travels with
+# a clone.
+.claude/
+.ruff_cache/
+
+# The Claude Design canvas the visual identity was drawn in: 1.2 MB of inlined
+# fonts and images, and no consumer in the repo.
 docs/take-notes_visual_identity.html
