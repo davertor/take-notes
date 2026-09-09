@@ -396,6 +396,12 @@ by hand simply stops appearing.
 Flags: `--no-open`, `--notes-dir`, `--out`, `--lang en|es` (defaults to the
 `language` in `~/take-notes/config.json`).
 
+Building the gallery also checks whether a newer version has been released, and
+says so in the footer if your copy is behind — the clone and `npx skills` routes
+don't auto-update, and a stale copy has no other symptom. It reads one small file
+from GitHub and stays quiet on any failure, so being offline changes nothing.
+Set `TAKE_NOTES_NO_UPDATE_CHECK=1` to skip it entirely.
+
 ## Credits
 
 Issues and pull requests are welcome — **[CONTRIBUTING.md](CONTRIBUTING.md)**
