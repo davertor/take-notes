@@ -7,7 +7,7 @@ are easy to get wrong from the outside.
 ## Cut the release, or the version never moves
 
 **A feature branch does not touch the version by hand.** After a PR is merged,
-on `main`:
+and **only** then, on `main`:
 
 ```sh
 uvx --from commitizen cz bump --yes && git push --follow-tags
@@ -16,6 +16,10 @@ uvx --from commitizen cz bump --yes && git push --follow-tags
 That reads the Conventional Commits since the last tag, decides patch / minor /
 major, rewrites the version in all five places that mirror it, commits
 `chore(release): X.Y.Z` and tags. Nothing is installed — it runs through `uvx`.
+
+**A commit pushed straight to `main` does not get a release of its own.** It
+stays unreleased and rides the bump that follows the next merged PR, which is
+why the increment is read from a range of commits and not from the last one.
 
 **Every release is tagged.** The increment is read from the commits since the
 last tag, so a release that ships without one widens the range the next bump
