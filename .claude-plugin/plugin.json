@@ -1,6 +1,6 @@
 {
   "name": "take-notes",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "description": "Turn a YouTube video, web article, arXiv paper, or GitHub repo into didactic study notes — executive summary, the one takeaway, key points, and a timestamped or sectioned outline — as a self-contained HTML page you keep, browse, and export.",
   "author": {
     "name": "Daniel Verdu",

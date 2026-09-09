@@ -20,7 +20,7 @@ There is no test suite. Each script with non-trivial logic carries its own
 asserts behind `--selftest`, and all of them must pass before a PR:
 
 ```sh
-for s in render notes gallery export transcript tags retag slides; do
+for s in render notes gallery export transcript tags retag slides themes; do
   uv run skills/take-notes/scripts/$s.py --selftest
 done
 ```
@@ -75,7 +75,7 @@ styling:
 | Landmark | In | Read by |
 |---|---|---|
 | `.poster`, `.kicker`, `.meta`, `.watch` | both note templates | the masthead parser |
-| `.tags` / `.tag` / `.tag.is-primary` | both note templates | the tag parser, and the gallery's chips |
+| `.tags` / `.tag` / `.tag.is-primary`, immediately above the literal `<div id="index">` | both note templates | the tag parser, the gallery's chips, and `retag.py`'s insertion anchor |
 | `<article id="body">` with a flat run of `<h2>` | both note templates | the section splitter |
 | `<li><strong>term</strong> — definition</li>` | `SKILL.md` Key points / Concepts | the Anki card builder |
 
@@ -92,8 +92,24 @@ is the point. Run it after touching a template or the Sections part of
 
 Notes are written in English or Spanish, so anything that finds a section by
 name matches both — see `SECTION_WORDS` in `scripts/notes.py` and the matching
-regexes in `assets/gallery-template.html`. Adding a language means adding to
-both, and to the string tables in `render.py` and `gallery.py`.
+regexes in the inline script of each note template under `assets/`. Adding a
+language means adding to all of them, and to the string tables in `render.py`
+and `gallery.py`.
+
+### 5. A theme is values, never a catalogue
+
+`scripts/themes.py` is the single source of truth for both the palette and the
+type. A rendered note carries only the theme it was made with, resolved to a
+single `:root` block — never the list of themes that exist — so a theme added
+later can never leave a note on disk stale. The gallery is the one file that
+holds the catalogue, and it is rebuilt on demand; it hands a note a different
+value set through the card's link, which the note applies without ever learning
+a name.
+
+Adding a theme is one entry in `THEMES` (and a `STACKS` entry if it needs its
+own type). `--selftest` enforces the contrast floors, that the display weight is
+one the family actually loads, and that the payload survives the round trip the
+gallery sends it on.
 
 ## Good first contributions
 
