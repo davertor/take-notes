@@ -17,6 +17,11 @@ That reads the Conventional Commits since the last tag, decides patch / minor /
 major, rewrites the version in all five places that mirror it, commits
 `chore(release): X.Y.Z` and tags. Nothing is installed — it runs through `uvx`.
 
+**Every release is tagged.** The increment is read from the commits since the
+last tag, so a release that ships without one widens the range the next bump
+reads and can turn a `feat!` from two releases ago into an unwanted major.
+`git push --follow-tags` is part of the command above for that reason.
+
 Then **write the CHANGELOG entry by hand**: `cz` deliberately does not, because
 the entries here are prose that explains what changed and why, not a list of
 commit subjects. `uvx --from commitizen cz changelog --dry-run` prints the
