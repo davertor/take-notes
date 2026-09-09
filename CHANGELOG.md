@@ -5,6 +5,34 @@ All notable changes to this project are documented here, in the
 written by hand; the version and the tag come from `cz bump` — see
 [AGENTS.md](AGENTS.md) and [CONTRIBUTING.md](CONTRIBUTING.md).
 
+## [1.5.0]
+
+### Added
+
+- **A stale install now says so.** Only the marketplace route auto-updates; a
+  clone or an `npx` install needs the user to remember, and the version appeared
+  nowhere they look. Building the gallery checks once against `main` and says so
+  in the footer and on stderr, in both languages. One small file, 2.5 s timeout,
+  every failure silent, `TAKE_NOTES_NO_UPDATE_CHECK=1` to skip it.
+- **The invariants that live in prose are checked in CI.** `scripts/check-drift.py`
+  is six stdlib checks for the rules nothing could enforce before: a routing row
+  the catch-all above it swallows, a guide the table names and nobody wrote, a
+  second copy of the writing standard free to drift, a rule dropped in a rewrite,
+  and a version that ships without a CHANGELOG entry.
+- **Releases are cut by CI.** `.github/workflows/release.yml` runs `cz bump` when
+  a PR merges into `main`, and only then — the manual step after every merge was
+  the one that got forgotten. A PR of only `docs` or `chore` releases nothing and
+  still passes. The CHANGELOG entry now belongs in the PR, since the tag is cut
+  on merge.
+
+### Fixed
+
+- **A combined note kept only one of its sources.** The note on disk held them
+  all, but `parse_note` read just the primary out of the `class="watch"` link and
+  never looked at the companion row — so a note built from a talk *and* its deck
+  exported as though the deck had never been read. `Note.sources` now carries
+  them all, and the Markdown frontmatter gets a `sources:` block.
+
 ## [1.4.0]
 
 ### Added
