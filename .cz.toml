@@ -10,6 +10,12 @@ name = "cz_conventional_commits"
 version = "1.4.0"
 tag_format = "v$version"
 
+# Annotated, like the tags already in this repo — and because `git push
+# --follow-tags` pushes only annotated tags. Left lightweight, the release
+# commit would reach GitHub without its tag and the next bump would read too
+# wide a range of commits.
+annotated_tag = true
+
 # Match the release commits this repo already has, rather than commitizen's
 # default `bump:` — which is not one of the types CONTRIBUTING.md allows.
 bump_message = "chore(release): $new_version"
