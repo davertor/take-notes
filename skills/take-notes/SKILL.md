@@ -305,8 +305,30 @@ be understood first; a reader should not be able to tell where the seam was.
 
 ## Step 4 — write the notes as HTML
 
-Use the sections of the contract you read in Step 3. Write **body HTML
-only** — no `<html>`, `<head>`,
+Every genre shares one spine; the contract you read in Step 3 fills the
+middle. In order:
+
+1. `<h2>Executive summary</h2>` — 3–5 sentences: what the source covers and
+   what it argues. Opens with a `<p>`: the gallery card quotes it.
+2. `<h2>The one takeaway</h2>` — 1–2 sentences wrapped in `<strong>`. The
+   single most important insight. If you can't name one, the notes aren't
+   ready.
+3. **The genre's own sections**, mandatory, in the order its contract lists.
+4. Optional — only when the source actually earns them, never as an empty
+   heading — after the genre's, in this order: `<h2>Concepts</h2>`, the
+   contract's own optionals, `<h2>Going deeper</h2>`.
+   - *Concepts*: jargon the source assumes or introduces, as
+     `<li><strong>term</strong> — definition</li>`. A term earns its place
+     only if not knowing it blocks understanding the notes.
+   - *Going deeper*: what the source leaves open — unanswered questions,
+     claims made without evidence, and the concrete next thing to read or try.
+
+A contract says what its genre puts in the spine's sections — a recipe's
+takeaway is the thing that makes or breaks the dish — but never re-declares
+them. The title and metadata line are **not** in the body — they come from
+the renderer flags.
+
+Write **body HTML only** — no `<html>`, `<head>`,
 `<body>`, no `<h1>`, and no metadata line: the renderer supplies the document
 shell and the masthead from the fields you collected in Step 1.
 

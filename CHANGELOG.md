@@ -30,6 +30,13 @@ written by hand; the version and the tag come from `cz bump` — see
   user define a fourth.
 - Every note template records its genre on `<html data-genre>`, the offprint's
   two included, so a user genre on the offprint layout reads back as itself.
+- **The spine is declared once.** Every genre opens with *Executive summary*
+  and *The one takeaway* and may close with *Concepts* and *Going deeper*; that
+  was written out in each contract, three copies free to drift. It now lives in
+  `SKILL.md` Step 4, a contract lists only its own sections and says what its
+  genre puts in the spine's, and `check-drift.py` refuses a contract that
+  re-declares one. A recipe's opening section is the summary, no longer a
+  differently-named *Description*.
 
 ## [1.5.0]
 

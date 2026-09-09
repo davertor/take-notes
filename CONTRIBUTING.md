@@ -181,9 +181,13 @@ without `when` is on request only (`--genre <name>`). Users add genres under
 
 Adding a **bundled genre** means:
 
-1. `genres/<name>.md` — the front-matter above, then the sections in the voice
-   of the other contracts, plus the class vocabulary the template styles (the
-   one exception to "no classes"); add the name to `BUNDLED_ORDER` in
+1. `genres/<name>.md` — the front-matter above, then **only the genre's own
+   sections**, in the voice of the other contracts, plus the class vocabulary
+   the template styles (the one exception to "no classes"). The spine every
+   genre shares — *Executive summary*, *The one takeaway*, and the optional
+   *Concepts* and *Going deeper* — is declared once in `SKILL.md` Step 4; a
+   contract says what its genre puts there and never writes the heading out
+   again (`check-drift.py` refuses it). Add the name to `BUNDLED_ORDER` in
    `scripts/genres.py`, above `offprint`;
 2. if it needs a new **layout**: `assets/<name>-template.html`, self-contained
    like the others, carrying the landmarks in the table above, `{{PALETTE}}`,
