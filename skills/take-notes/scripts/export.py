@@ -112,6 +112,13 @@ def to_markdown(note: Note, doc: str) -> str:
         f"kind: {note.kind}",
         f"genre: {note.genre}",
         f"tags: [{tags}]",
+    ]
+    # A combined note has more than one source, and `source` above is only the
+    # primary. Kept as a block sequence so a label with a comma stays one entry.
+    if note.sources:
+        front.append("sources:")
+        front.extend(f"  - {_yaml(f'{label} — {url}')}" for label, url in note.sources)
+    front += [
         "---",
         "",
         f"# {note.title}",
@@ -229,6 +236,22 @@ def _selftest() -> int:
     assert 'tags: ["take-notes", "Engineering", "Cache design"]' in md, (
         "every tag reaches the frontmatter, primary first — this is Obsidian's tag pane"
     )
+    assert "sources:" not in md, "a note that combined nothing gets no sources block"
+
+    # A combined note: every companion reaches the frontmatter. `source` alone
+    # would file it as though the other halves had never been read.
+    combined_doc = render.build_article_document(
+        "Combined", "<h2>Executive summary</h2><p>ok</p>",
+        byline="Sitio", span="Aug 15, 2026", url="https://primary.test/talk",
+        sources=[("Slides", "https://deck.test/d/1?a=1&b=2"), ("Repo", "https://github.test/r")],
+        today="2026-01-01",
+    )
+    combined_md = to_markdown(parse_note(notes_dir / "2026-08-16-c.html", combined_doc), combined_doc)
+    assert 'source: "https://primary.test/talk"' in combined_md
+    assert (
+        'sources:\n  - "Slides — https://deck.test/d/1?a=1&b=2"\n  - "Repo — https://github.test/r"\n'
+    ) in combined_md, combined_md
+
     assert "## Key points" in md and "## How it works" in md
     assert "- **Ownership is the bug** — nobody owns expiry" in md, md
     assert "1. First step" in md and "2. Second step" in md, "ordered lists keep their numbers"

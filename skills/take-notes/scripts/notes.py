@@ -39,6 +39,8 @@ DATE_PREFIX = re.compile(r"^(\d{4}-\d{2}-\d{2})-")
 TAGS = re.compile(r"<[^>]+>")
 TAG_ROW = re.compile(r'<p class="tags">(.*?)</p>', re.DOTALL)
 TAG_SPAN = re.compile(r'<span class="tag([^"]*)">(.*?)</span>', re.DOTALL)
+SOURCE_ROW = re.compile(r'<p class="sources">(.*?)</p>', re.DOTALL)
+SOURCE_LINK = re.compile(r'<a href="([^"]*)"[^>]*>(.*?)</a>', re.DOTALL)
 
 # Section headings, both languages. SKILL.md fixes the English names and their
 # Spanish equivalents; matching on words rather than exact strings keeps a note
@@ -67,6 +69,11 @@ class Note:
     tag: str = ""                     # primary tag, the one a card shows
     tags: tuple[str, ...] = ()        # every tag, primary first
     genre: str = "offprint"           # the content shape; offprint when unmarked
+    # The companions a combined note was built from, as (label, url) in the
+    # order they were rendered. `source` above stays the primary one; these are
+    # the rest, and without them a note that combined a talk and its deck
+    # exports as though the deck had never been read.
+    sources: tuple[tuple[str, str], ...] = ()
 
 
 def read_config(path: Path | None = None) -> dict:
@@ -226,6 +233,23 @@ def parse_tags(doc: str) -> tuple[str, tuple[str, ...]]:
     return primary, (primary, *[n for n in names if n != primary])
 
 
+def parse_sources(doc: str) -> tuple[tuple[str, str], ...]:
+    """The companion sources, as (label, url), in the order they were written.
+
+    Empty for the notes that combined nothing, which is most of them. The row
+    deliberately carries no `class="watch"`, so the primary source parsed above
+    can never be confused with one of these.
+    """
+    row = SOURCE_ROW.search(doc)
+    if not row:
+        return ()
+    return tuple(
+        (label, html.unescape(url))
+        for url, inner in SOURCE_LINK.findall(row.group(1))
+        if (label := text_of(inner)) and url
+    )
+
+
 def parse_note(path: Path, doc: str) -> Note:
     """Pull the masthead back out of a rendered note."""
     poster = attr(r'<a class="poster" href="([^"]*)"', doc)
@@ -254,6 +278,7 @@ def parse_note(path: Path, doc: str) -> Note:
         # Declared on <html> by the genre templates; every note written before
         # genres existed carries no attribute and is, by construction, an offprint.
         genre=attr(r'<html[^>]*\sdata-genre="([a-z]+)"', doc) or "offprint",
+        sources=parse_sources(doc),
     )
 
 
@@ -320,6 +345,24 @@ def _selftest() -> int:
     bare = parse_note(notes_dir / "stray.html", "<html><body><p>hi</p></body></html>")
     assert bare.title == "stray" and bare.kind == "article" and bare.date == ""
     assert (bare.tag, bare.tags) == ("", ()), "a note written before tags existed still parses"
+
+    # Companion sources: every one of them comes back, not just the first, and
+    # the primary is never mistaken for one. A note that combined nothing has
+    # none — which is every note written before combining existed.
+    assert video.sources == () and article.sources == () and bare.sources == ()
+    combined_doc = render.build_article_document(
+        "Combined",
+        "<h2>Executive summary</h2><p>ok</p>",
+        byline="Sitio", span="Jan 1, 2026", url="https://primary.test/talk",
+        sources=[("Slides", "https://deck.test/d/1?a=1&b=2"), ("Repo", "https://github.test/r")],
+        today="2026-01-01",
+    )
+    combined = parse_note(notes_dir / "2026-08-03-combined.html", combined_doc)
+    assert combined.sources == (
+        ("Slides", "https://deck.test/d/1?a=1&b=2"),
+        ("Repo", "https://github.test/r"),
+    ), combined.sources
+    assert combined.source == "https://primary.test/talk", "the primary stays the primary"
 
     # Genre: declared on <html> by the genre templates, offprint when absent —
     # which is every note written before genres existed. Kind still comes from

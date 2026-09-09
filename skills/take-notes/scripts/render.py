@@ -534,6 +534,9 @@ def _selftest() -> int:
     assert combined.startswith('<p class="sources">') and ">Slides</a>" in combined
     assert "a=1&amp;b=2" in combined, "companion URLs are escaped"
     assert 'class="watch"' not in combined
+    both = sources_html([("Slides", "https://deck.test/d/1"), ("Repo", "https://github.test/r")])
+    assert both.count("<a ") == 2, "every companion is rendered, not just the first"
+    assert both.index(">Slides<") < both.index(">Repo<"), "in the order the skill passed them"
     assert sources_html(None) == "" and sources_html([]) == ""
     assert sources_html([("  ", "https://x.test")]) == "", "a label-less source is dropped"
     assert sources_html([("Deck", "  ")]) == "", "a URL-less source is dropped"
