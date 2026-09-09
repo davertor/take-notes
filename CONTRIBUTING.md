@@ -14,33 +14,13 @@ cd take-notes
 
 No build, no virtualenv, no install step. `uv` provisions Python per script.
 
-### 6. A genre is a contract plus a template
-
-`SKILL.md` Step 3 routes a source's *content* to a genre; each genre is one body
-contract and one template, and the offprint is the default. The offprint's
-contract stays inline in `SKILL.md` (it is the common case and saves a Read per
-note); every other genre's lives in `skills/take-notes/genres/<name>.md`.
-Adding one means:
-
-1. a row in the Step 3 table, above the offprint's catch-all;
-2. `genres/<name>.md` — the sections, in `## Sections`' voice, plus the class
-   vocabulary the template styles (the one exception to "no classes");
-3. `assets/<name>-template.html`, self-contained like the others, carrying the
-   landmarks in the table above, `{{PALETTE}}`, `{{FONTS}}`,
-   `data-genre="{{GENRE}}"`, and `{{MASTHEAD}}` where the poster or kicker goes;
-4. an entry in `GENRE_TEMPLATES` in `scripts/render.py`, a label in both
-   languages of `UI` in `scripts/gallery.py`, and asserts in each `--selftest`.
-
-The theme is orthogonal: a genre template consumes the palette tokens and never
-hard-codes a colour.
-
 ## Verify
 
 There is no test suite. Each script with non-trivial logic carries its own
 asserts behind `--selftest`, and all of them must pass before a PR:
 
 ```sh
-for s in render notes gallery export transcript tags retag slides themes; do
+for s in render notes gallery export transcript tags retag slides themes genres; do
   uv run skills/take-notes/scripts/$s.py --selftest
 done
 ```
@@ -140,7 +120,7 @@ styling:
 |---|---|---|
 | `.poster`, `.kicker`, `.meta`, `.watch` | both note templates | the masthead parser |
 | `.tags` / `.tag` / `.tag.is-primary`, immediately above the literal `<div id="index">` | both note templates | the tag parser, the gallery's chips, and `retag.py`'s insertion anchor |
-| `<html data-genre="…">` | the genre templates (absent = offprint) | the genre parser, the gallery's card label, the Markdown frontmatter |
+| `<html data-genre="…">` | every note template (absent = a note older than genres, an offprint) | the genre parser, the gallery's card label, the Markdown frontmatter |
 | `<article id="body">` with a flat run of `<h2>` — and no `<article>` inside it | every note template, and every genre contract | the section splitter, which ends the body at the first `</article>` |
 | `<li><strong>term</strong> — definition</li>` | `SKILL.md` Key points / Concepts | the Anki card builder |
 
@@ -175,6 +155,46 @@ Adding a theme is one entry in `THEMES` (and a `STACKS` entry if it needs its
 own type). `--selftest` enforces the contrast floors, that the display weight is
 one the family actually loads, and that the payload survives the round trip the
 gallery sends it on.
+
+### 6. A genre is a contract; a layout is a template
+
+`SKILL.md` Step 3 routes a source's *content* to a genre. A genre is one file,
+`skills/take-notes/genres/<name>.md`, for all three that ship — the offprint's
+contract is no longer inline in `SKILL.md`. The file opens with a flat
+front-matter block the scripts read (`genres.py` parses it; no YAML library):
+
+```
+---
+layout: recipe          # offprint | fieldguide | recipe — the template
+label-en: recipe        # the gallery card's label
+label-es: receta
+when: a dish — ingredients with quantities and a method with times
+---
+```
+
+`when` is the genre's row in the router. `genres.py --list` generates the
+table Step 3 reads from these lines, in precedence order — user genres first,
+then `recipe`, `fieldguide`, `offprint` (`BUNDLED_ORDER`) — so the table is
+never written by hand and `check-drift.py` refuses a row that is. A genre
+without `when` is on request only (`--genre <name>`). Users add genres under
+`~/take-notes/genres/`, and one named like a bundled genre replaces it.
+
+Adding a **bundled genre** means:
+
+1. `genres/<name>.md` — the front-matter above, then the sections in the voice
+   of the other contracts, plus the class vocabulary the template styles (the
+   one exception to "no classes"); add the name to `BUNDLED_ORDER` in
+   `scripts/genres.py`, above `offprint`;
+2. if it needs a new **layout**: `assets/<name>-template.html`, self-contained
+   like the others, carrying the landmarks in the table above, `{{PALETTE}}`,
+   `{{FONTS}}`, `data-genre="{{GENRE}}"`, and `{{MASTHEAD}}` where the poster
+   or kicker goes; an entry in `LAYOUT_TEMPLATES` in `scripts/render.py` and in
+   `LAYOUTS` in `scripts/genres.py`. Most genres do not — the layouts are a
+   closed set on purpose, and a genre's value is its sections;
+3. asserts in `genres.py --selftest` and `render.py --selftest`.
+
+The theme is orthogonal: a genre template consumes the palette tokens and never
+hard-codes a colour.
 
 ## Good first contributions
 

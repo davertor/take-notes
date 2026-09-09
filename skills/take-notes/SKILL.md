@@ -11,7 +11,7 @@ metadata:
 # `allowed-tools` stays comma-separated: the spec asks for spaces but marks the
 # field experimental ("support may vary"), and commas are what Claude Code
 # parses today. Do not "correct" either without testing in Claude Code first.
-argument-hint: "<url> [more-urls…] [focus] [--lang en|es] [--genre offprint|fieldguide|recipe] | --tags | --add-tag X | --remove-tag X | --retag | --theme [name]"
+argument-hint: "<url> [more-urls…] [focus] [--lang en|es] [--genre <name>] | --tags | --add-tag X | --remove-tag X | --retag | --theme [name]"
 allowed-tools: Bash, Read, WebFetch, AskUserQuestion
 disable-model-invocation: true
 ---
@@ -264,14 +264,18 @@ defines jargon (*Concepts*), or leaves something unresolved (*Going deeper*).
 
 A note's **genre** is the shape of its content — which sections it has and
 which template renders them. It is a property of the source, not a taste, so
-you pick it after reading, from this table, **top to bottom, first row that
-fits**:
+you pick it after reading. Print the router:
 
-| The source is… | Genre | Contract |
-|---|---|---|
-| a dish — ingredients with quantities and a method with times | `recipe` | Read `genres/recipe.md` |
-| several things of one kind described on shared axes — tools, models, products, options, the papers in a survey; four or more of them | `fieldguide` | Read `genres/fieldguide.md` |
-| anything else — a talk, an article, a paper, a docs page, a repo, a lesson | `offprint` | `## Sections` below |
+```bash
+uv run "${SKILL_DIR}/scripts/genres.py" --list --lang <en|es>
+```
+
+It is a table of every installed genre — the bundled `recipe`, `fieldguide`
+and `offprint`, plus any the user added under `~/take-notes/genres/` — with a
+one-line "the source is…" per row and the path of its contract. Read it **top
+to bottom, first row that fits**; the offprint is the last row and the
+catch-all. A genre listed as *on request only* is never picked here — it is
+used when asked for by name.
 
 Resolution order, stop at the first that applies: `--genre <name>` in the
 invocation, or a request in words ("write it as a recipe", "hazla como guía")
@@ -279,10 +283,10 @@ invocation, or a request in words ("write it as a recipe", "hazla como guía")
 than the default, the same rule as for tags. With several sources the genre
 comes from the set as a whole, not from the first URL.
 
-For a genre other than the offprint, Read its contract file now; it replaces
-`## Sections` below and nothing else — `## Rules` still applies in full. Say
-which genre you chose in the same short line as the language and the tag, only
-when it is not the offprint:
+Now Read the contract at the path the table gives. It holds the sections for
+Step 4 and nothing else — `## Rules` still applies in full. Say which genre
+you chose in the same short line as the language and the tag, only when it is
+not the offprint:
 
 > Writing in Spanish per your config, filed under **Cooking**, as a **recipe**.
 
@@ -301,8 +305,7 @@ be understood first; a reader should not be able to tell where the seam was.
 
 ## Step 4 — write the notes as HTML
 
-Use the sections of the genre you picked in Step 3 — the offprint's are under
-`## Sections` below; the other genres' live in `genres/`. Write **body HTML
+Use the sections of the contract you read in Step 3. Write **body HTML
 only** — no `<html>`, `<head>`,
 `<body>`, no `<h1>`, and no metadata line: the renderer supplies the document
 shell and the masthead from the fields you collected in Step 1.
@@ -327,9 +330,9 @@ HTML
 Pass one `--tag` per tag chosen in Step 2, **primary first** — `--tag AI --tag
 Engineering`. With no `--tag` at all the note is filed under `Unknown`.
 
-`--genre` is Step 3's choice — `fieldguide` or `recipe`; leave it off for an
-offprint. `--video-id` still decides the masthead in every genre: a poster with
-it, a byline kicker without.
+`--genre` is Step 3's choice, by name; leave it off for an offprint.
+`--video-id` still decides the masthead in every genre: a poster with it, a
+byline kicker without.
 
 The masthead flags describe the **primary** source. When the run combined
 several, add one `--source "<label>" "<url>"` per companion, in the order they
@@ -369,58 +372,6 @@ already-written file is not something this skill does — re-run the source.
 
 Pass `--lang` matching Step 2's choice (`en` or `es`). Add `--no-open` to skip
 the browser, `--out-dir` to write somewhere other than `~/take-notes/html_reports`.
-
-## Sections
-
-The offprint's contract — the default genre. `genres/fieldguide.md` and
-`genres/recipe.md` replace this section, and only this section, for theirs.
-
-Mandatory, in this order. The title and metadata line are **not** in the body —
-they come from the renderer flags.
-
-1. `<h2>Executive summary</h2>` — 3–5 sentences: what the source covers and what
-   it argues.
-2. `<h2>The one takeaway</h2>` — 1–2 sentences wrapped in `<strong>`. The single
-   most important insight. If you can't name one, the notes aren't ready.
-3. `<h2>Key points</h2>` — a `<ul>` of 5–10 items, each
-   `<li><strong>Claim</strong> — the detail that supports it</li>`.
-   Cap at 10; more than that is a transcript with bullets in front of it.
-4. The outline, rendered to match the source:
-   - video → `<h2>Timestamped outline</h2>`, one `<li>` per topic:
-     `<li><a href="https://youtu.be/<ID>?t=754s">12:34</a> — <strong>Topic</strong> — one-line summary</li>`
-     Use absolute `?t=<seconds>s` URLs so the links jump to the right moment.
-   - article → `<h2>Section outline</h2>`, one `<li>` per section:
-     `<li><strong>Section heading</strong> — one-line summary</li>`, wrapping the
-     heading in `<a href="<URL>#anchor">` when the page has stable anchors.
-
-   Aim for 6–15 entries either way; group adjacent material covering one idea.
-
-   The outline follows the **primary** source only — it is one source's spine,
-   and interleaving two makes it navigate neither. A companion stays traceable
-   through inline deep links wherever a point comes from it: a slide's
-   `<a href="<deck URL>#slide=id.<PAGE_ID>">`, a video's `?t=<seconds>s`.
-
-Optional — include only when the source actually earns it, never as an empty heading:
-
-- `<h2>Concepts</h2>` — jargon the source assumes or introduces, as
-  `<li><strong>term</strong> — definition</li>`. Include a term only if not
-  knowing it blocks understanding the notes.
-- `<h2>How it works</h2>` — an `<ol>` for a mechanism, pipeline, or worked example
-  the source demonstrates. Code goes in `<pre><code>`.
-- `<h2>Going deeper</h2>` — what the source leaves open: unanswered questions,
-  claims made without evidence, and the concrete next thing to read or try.
-
-**Source figures** — `web.md` and `arxiv.md` return the diagrams, charts, and
-screenshots the page carried; `slides.md` returns an image URL for every slide.
-Include one only when it is load-bearing — the diagram *is* the explanation, the
-chart *is* the evidence — never a decorative photo, a header banner, an author
-headshot, or (for a deck) a slide that is just bullets you already wrote out.
-Cap at 3, the same "more than that is a dump" discipline as Key Points. Not a
-section of its own: place
-`<figure><img src="<url>" alt="<alt text>"><figcaption>caption</figcaption></figure>`
-inline, in whichever section it supports — most often *How it works*, *Key
-points*, or *Concepts*. Each guide says how to confirm the URL really serves an
-image before you embed it; a broken-image icon teaches nothing.
 
 ## Rules
 

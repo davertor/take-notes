@@ -1,3 +1,10 @@
+---
+layout: recipe
+label-en: recipe
+label-es: receta
+when: a dish — ingredients with quantities and a method with times
+---
+
 # Genre — recipe
 
 The body contract for a source that is **a dish**: ingredients with quantities

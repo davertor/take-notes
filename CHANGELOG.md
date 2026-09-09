@@ -5,6 +5,32 @@ All notable changes to this project are documented here, in the
 written by hand; the version and the tag come from `cz bump` — see
 [AGENTS.md](AGENTS.md) and [CONTRIBUTING.md](CONTRIBUTING.md).
 
+## [1.6.0]
+
+### Added
+
+- **Your own genres.** A genre is now one Markdown file — a front-matter block
+  naming its layout, its card label and the one-line "the source is…" the
+  router reads, then the sections the skill writes — and `~/take-notes/genres/`
+  is scanned beside the three that ship. Pick one of the three layouts, write
+  the sections, and it is routable the moment it has a `when:` line; leave that
+  out and it is used only by name with `--genre`, the safe way to try one. A
+  file named like a bundled genre replaces it, so a copy of `recipe.md` with
+  different facts on the card is your own recipe genre.
+- **The router is generated, not written.** `scripts/genres.py --list` prints
+  Step 3's table from the contracts' front-matter, in precedence order — user
+  genres first, then `recipe`, `fieldguide`, `offprint` as the catch-all — and
+  `check-drift.py` refuses a router row written back into `SKILL.md` by hand.
+
+### Changed
+
+- **The offprint's contract moved to `genres/offprint.md`**, in the same shape
+  as the other two. `SKILL.md` is 52 lines shorter for every note, and the
+  three genres are now defined the same way — the precondition for letting a
+  user define a fourth.
+- Every note template records its genre on `<html data-genre>`, the offprint's
+  two included, so a user genre on the offprint layout reads back as itself.
+
 ## [1.5.0]
 
 ### Added

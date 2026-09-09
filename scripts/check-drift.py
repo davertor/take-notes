@@ -32,8 +32,9 @@ REQUIRED_PHRASES = {
     "Didactic means explaining, not compressing": "the point of the whole skill",
 }
 
-# What a copied-in section contract looks like. The writing standard has one
-# copy, in SKILL.md; the guides under references/ are acquisition only.
+# What a copied-in section contract looks like. The writing standard lives in
+# SKILL.md and the contracts under genres/; the guides under references/ are
+# acquisition only.
 WRITING_STANDARD_MARKERS = ("Executive summary", "The one takeaway", "Didactic means")
 
 
@@ -86,7 +87,19 @@ def main() -> int:
         if phrase not in skill:
             errors.append(f"SKILL.md lost the rule {phrase!r} — {why}")
 
-    # 6. The version that ships is a version someone can read the notes for.
+    # 6. The genre router is generated from the contracts (genres.py --list), so
+    #    a row written back into SKILL.md by hand would be a second copy that
+    #    drifts from the front-matter the script reads.
+    if "genres.py\" --list" not in skill:
+        errors.append("SKILL.md Step 3 no longer runs `genres.py --list` — the router table is generated, not written")
+    stale = re.findall(r"^\|.*`(recipe|fieldguide|offprint)`.*\|$", skill, re.M)
+    if stale:
+        errors.append(
+            f"SKILL.md carries a hand-written router row for {', '.join(stale)} — the table comes "
+            "from genres/*.md front-matter; edit the `when:` there instead"
+        )
+
+    # 7. The version that ships is a version someone can read the notes for.
     version = re.search(r'^\s*version:\s*"([^"]+)"', skill, re.M)
     if version is None:
         errors.append("SKILL.md has no `version:` in its frontmatter")

@@ -1,3 +1,10 @@
+---
+layout: fieldguide
+label-en: field guide
+label-es: guía
+when: several things of one kind described on shared axes — tools, models, products, options, the papers in a survey; four or more of them
+---
+
 # Genre — field guide (a comparative catalogue)
 
 The body contract for a source that presents **several things of one kind on
