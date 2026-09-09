@@ -45,8 +45,21 @@ for s in render notes gallery export transcript tags retag slides themes; do
 done
 ```
 
-CI runs exactly this, plus a check that the plugin manifests parse and their
-version matches `SKILL.md`'s.
+Those cover the scripts. The invariants that live in prose — the ones §"The
+four things that will bite you" below is about — have their own guard:
+
+```sh
+uv run scripts/check-drift.py
+```
+
+It fails if never-auto-invoke stops agreeing across its two files, if the Step 1
+catch-all row moves above a more specific one, if the table and `references/`
+stop naming the same guides, if a guide grows a copy of the writing standard, or
+if one of a handful of load-bearing rules disappears from `SKILL.md`. It is
+development tooling and is not shipped inside the skill.
+
+CI runs both, plus a check that the plugin manifests parse and their version
+matches `SKILL.md`'s.
 
 ## Releases
 

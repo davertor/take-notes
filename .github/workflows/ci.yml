@@ -22,6 +22,11 @@ jobs:
             uv run skills/take-notes/scripts/$s.py --selftest
           done
 
+      # The scripts' asserts cover the scripts. This covers the invariants that
+      # live in prose and break silently. See CONTRIBUTING.md.
+      - name: Check skill invariants
+        run: uv run scripts/check-drift.py
+
       - name: Validate plugin manifests
         run: |
           python3 -c "

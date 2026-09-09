@@ -17,6 +17,7 @@ import json
 import os
 import re
 import sys
+import urllib.request
 import webbrowser
 from pathlib import Path
 
@@ -29,6 +30,15 @@ from notes import (  # noqa: E402
 
 DEFAULT_OUT = Path.home() / "take-notes" / "gallery.html"
 TEMPLATE_PATH = Path(__file__).resolve().parent.parent / "assets" / "gallery-template.html"
+SKILL_PATH = Path(__file__).resolve().parent.parent / "SKILL.md"
+
+# Two of the three install routes never auto-update, and a stale copy has no
+# symptom — it just quietly lacks whatever the README shows. The gallery is
+# where the check goes: it is rebuilt on demand, so a slow or failed request
+# delays nothing anyone is waiting on, unlike the note-writing path.
+REPO_URL = "https://github.com/davertor/take-notes"
+LATEST_URL = "https://raw.githubusercontent.com/davertor/take-notes/main/.claude-plugin/plugin.json"
+NO_CHECK_ENV = "TAKE_NOTES_NO_UPDATE_CHECK"
 
 # Whole phrases, like render.py's — see the note there on why these are not
 # assembled from translated fragments.
@@ -44,6 +54,7 @@ UI = {
         "video": "video",
         "article": "article",
         "built": "{dir}",
+        "update": "take-notes {latest} is out — you have {local}. Update: {url}",
         "theme_label": "Theme",
         "theme_auto": "Auto",
         "fieldguide": "field guide",
@@ -60,6 +71,7 @@ UI = {
         "video": "vídeo",
         "article": "artículo",
         "built": "{dir}",
+        "update": "take-notes {latest} ya está disponible — tienes la {local}. Actualiza: {url}",
         "theme_label": "Tema",
         "theme_auto": "Sistema",
         "fieldguide": "guía",
@@ -210,6 +222,7 @@ def build_gallery(
     notes_dir: Path,
     lang: str = "en",
     theme: str = themes.AUTO,
+    notice: str = "",
 ) -> str:
     """The whole page as a string.
 
@@ -233,13 +246,58 @@ def build_gallery(
         "{{CHIPS}}": build_chips(notes),
         "{{CARDS}}": cards or f'<p class="blank">{html.escape(strings["empty"])}</p>',
         "{{NOMATCH}}": html.escape(strings["nomatch"]),
-        "{{FOOTER}}": strings["built"].format(dir=html.escape(str(notes_dir))),
+        "{{FOOTER}}": strings["built"].format(dir=html.escape(str(notes_dir)))
+        + (f" · {html.escape(notice)}" if notice else ""),
     }.items():
         doc = doc.replace(token, value)
     if "{{" in doc:
         stray = doc[doc.index("{{"):doc.index("{{") + 30]
         raise ValueError(f"unresolved gallery-template.html token near {stray!r}")
     return doc
+
+
+def installed_version() -> str:
+    """The `version` this copy of the skill declares, or "" if it can't be read."""
+    try:
+        found = re.search(r'^\s*version:\s*"([^"]+)"', SKILL_PATH.read_text(encoding="utf-8"), re.M)
+    except OSError:
+        return ""
+    return found.group(1) if found else ""
+
+
+def latest_version(timeout: float = 2.5) -> str:
+    """The version on `main`, or "" when the check can't be made.
+
+    Every failure is the same answer — say nothing. Offline, behind a proxy,
+    GitHub down, a body that isn't the JSON expected: none of them are the
+    user's problem, and none may keep them from reading their own notes. This
+    is the one place a bare `except` is right, because the fallback is silence.
+    """
+    try:
+        with urllib.request.urlopen(LATEST_URL, timeout=timeout) as response:  # noqa: S310
+            return str(json.loads(response.read(4096))["version"])
+    except Exception:
+        return ""
+
+
+def outdated(local: str, latest: str) -> bool:
+    """True only when `local` is genuinely behind `latest`.
+
+    Compared as numbers, not strings, so "1.10.0" is newer than "1.9.0" — and
+    a working copy *ahead* of main (a release branch mid-flight) is never told
+    to downgrade. An unparseable version on either side warns about nothing.
+    """
+    try:
+        return tuple(int(p) for p in local.split(".")) < tuple(int(p) for p in latest.split("."))
+    except ValueError:
+        return False
+
+
+def update_notice(local: str, latest: str, strings: dict[str, str]) -> str:
+    """One line naming both versions, or "" when there is nothing to say."""
+    if not (local and latest and outdated(local, latest)):
+        return ""
+    return strings["update"].format(local=local, latest=latest, url=REPO_URL)
 
 
 def config_lang() -> str:
@@ -392,6 +450,22 @@ def _selftest() -> int:
         )
     assert 'data-set-theme="barbie"' in themed and "window.themePayloads=" in themed
 
+    # The update warning: compared as numbers, and silent unless behind. No
+    # network here — latest_version() is a thin wrapper whose every failure is
+    # already the same as having nothing to say.
+    assert outdated("1.2.0", "1.3.0") and outdated("1.9.0", "1.10.0")
+    assert not outdated("1.3.0", "1.3.0")
+    assert not outdated("1.4.0", "1.3.0"), "a copy ahead of main must not be told to update"
+    assert not outdated("1.2.0", ""), "a failed check must warn about nothing"
+    assert not outdated("1.2.0", "next"), "an unparseable version must warn about nothing"
+    assert not update_notice("1.3.0", "1.3.0", UI["en"])
+    for lang in UI:
+        stale = update_notice("1.2.0", "1.3.0", UI[lang])
+        assert "1.2.0" in stale and "1.3.0" in stale, f"{lang}: the notice must name both versions"
+        assert html.escape(stale) in build_gallery([video], out_dir, notes_dir, notice=stale), (
+            f"{lang}: the notice never reached the footer"
+        )
+
     print("selftest: ok")
     return 0
 
@@ -428,13 +502,20 @@ def main() -> int:
         print(f"gallery: no notes directory at {notes_dir}", file=sys.stderr)
         return 1
 
+    notice = ""
+    if not os.environ.get(NO_CHECK_ENV):
+        notice = update_notice(installed_version(), latest_version(), UI.get(lang, UI["en"]))
+
     notes = collect(notes_dir)
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(
-        build_gallery(notes, out.parent, notes_dir, lang=lang, theme=theme), encoding="utf-8"
+        build_gallery(notes, out.parent, notes_dir, lang=lang, theme=theme, notice=notice),
+        encoding="utf-8",
     )
 
     print(f"gallery: {len(notes)} note(s) -> {out}")
+    if notice:
+        print(f"gallery: {notice}", file=sys.stderr)
     if not args.no_open:
         webbrowser.open(out.as_uri())
     return 0
