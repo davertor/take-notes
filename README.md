@@ -6,7 +6,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-1.2.0-ab2f19?style=flat-square&labelColor=191511" alt="Version 1.2.0">
+  <img src="https://img.shields.io/badge/version-1.3.0-ab2f19?style=flat-square&labelColor=191511" alt="Version 1.3.0">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-57503f?style=flat-square&labelColor=191511" alt="MIT license"></a>
   <img src="https://img.shields.io/badge/agents-any%20Agent%20Skills%20host-57503f?style=flat-square&labelColor=191511" alt="Compatible with any Agent Skills host">
   <img src="https://img.shields.io/badge/output-html%20%C2%B7%20md%20%C2%B7%20anki-57503f?style=flat-square&labelColor=191511" alt="Output: HTML, Markdown, Anki">
@@ -143,6 +143,36 @@ several versions of itself, a paper where you want one section, or a two-hour
 video where twenty minutes matter; a short single-topic post has nothing to
 trim. Leave it off to cover a source in full.
 
+### Theme
+
+A theme is a **palette and a typeface**, not just colours. `auto` is the default
+and the shipped behaviour: warm paper by day, graphite by night.
+
+<p align="center">
+<a href="docs/themes.png"><img src="docs/themes.png" width="900" alt="The same note in three themes — notebook in handwriting on ruled paper, acid in Space Grotesk on near-black, barbie in Bodoni on pink"></a>
+<br><sub>The same note, three themes. A theme changes the stock, the ink and the typeface; the composition never moves.</sub>
+</p>
+
+| | |
+|---|---|
+| `paper` `field` `blueprint` `graphite` | the house voice — Fraunces over Newsreader, on warm, green, blue and near-black stock |
+| `bureau` | Swiss neutral, Space Grotesk, red signal accent |
+| `acid` | highlighter green on near-black, Space Grotesk, hard 2px rules |
+| `barbie` | Bodoni over Jost, hot pink, rounded corners |
+| `petrol` | Jost throughout, cream and petrol — one typeface for everything |
+| `notebook` | handwriting on ruled paper, blue biro, red correction pen |
+
+```sh
+/take-notes --theme                 # list them, marking the one in force
+/take-notes --theme "notebook"      # set it, write no note
+```
+
+The gallery carries its own **theme menu** in the filter bar: it repaints at
+once, remembers your pick in that browser, and hands it to any note you open
+from a card — so an archive written in one theme reads in another. The config
+is the default baked into new notes; the menu is what you are reading in now.
+Neither rewrites notes already on disk.
+
 ### Language
 
 Optional — notes are written in **English** unless you say otherwise.
@@ -192,6 +222,7 @@ The full grammar, for reference:
 ```sh
 /take-notes <url> [more urls…] [focus] [--lang en|es]
 /take-notes --tags | --add-tag "AI" | --remove-tag "AI" | --retag
+/take-notes --theme | --theme "notebook"
 ```
 
 The second line manages tags instead of writing a note. Edit the list from the

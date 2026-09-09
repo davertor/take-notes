@@ -11,13 +11,17 @@ visible, and means nothing to keep in sync when a note is deleted by hand.
 from __future__ import annotations
 
 import argparse
+import base64
 import html
+import json
 import os
+import re
 import sys
 import webbrowser
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import themes  # noqa: E402
 from notes import (  # noqa: E402
     DEFAULT_TAG, NOTES_DIR, Note, collect, fold, length_of, read_config,
 )
@@ -40,6 +44,8 @@ UI = {
         "video": "video",
         "article": "article",
         "built": "{dir}",
+        "theme_label": "Theme",
+        "theme_auto": "Auto",
     },
     "es": {
         "title": "take-notes — archivo",
@@ -52,6 +58,8 @@ UI = {
         "video": "vídeo",
         "article": "artículo",
         "built": "{dir}",
+        "theme_label": "Tema",
+        "theme_auto": "Sistema",
     },
 }
 
@@ -139,6 +147,44 @@ def build_chips(notes: list[Note]) -> str:
     return f'<div class="chips" id="chips">{chips}</div>'
 
 
+def build_payloads() -> str:
+    """Every theme's value set, base64-JSON, for the menu to hand to a note.
+
+    The gallery is the only file that holds the catalogue — it is rebuilt on
+    demand, so a theme added later reaches it for free. A note receives values
+    and never a name, which is why a note written before a theme existed can
+    still be read in it.
+    """
+    loads = {name: themes.payload(name) for name in themes.NAMES}
+    packed = {
+        name: base64.b64encode(
+            json.dumps(load, separators=(",", ":")).encode("utf-8")
+        ).decode("ascii")
+        for name, load in loads.items() if load
+    }
+    return json.dumps(packed, separators=(",", ":"))
+
+
+def build_swatches(theme: str, strings: dict[str, str]) -> str:
+    """One button per theme, `auto` first, each showing the paper it prints on
+    and the pen it marks with.
+
+    `aria-pressed` is set for the theme baked into this file; the script fixes
+    it up on load when the browser remembers a different one.
+    """
+    buttons = []
+    for name in themes.NAMES:
+        label = strings["theme_auto"] if name == themes.AUTO else name.capitalize()
+        palette = themes.THEMES.get(name, themes.THEMES[themes.AUTO_LIGHT])
+        style = f'--sw-paper: {palette["paper"]}; --sw-pen: {palette["pen"]}'
+        buttons.append(
+            f'        <button type="button" class="swatch" data-set-theme="{name}"'
+            f' aria-pressed="{"true" if name == theme else "false"}">'
+            f'<i style="{style}"></i>{html.escape(label)}</button>'
+        )
+    return "\n".join(buttons)
+
+
 def build_tally(notes: list[Note], strings: dict[str, str]) -> str:
     if not notes:
         return ""
@@ -155,12 +201,24 @@ def build_gallery(
     out_dir: Path,
     notes_dir: Path,
     lang: str = "en",
+    theme: str = themes.AUTO,
 ) -> str:
+    """The whole page as a string.
+
+    `theme` is a parameter rather than a config read, exactly like `lang`: the
+    caller resolves it, so this stays a pure function of its arguments and the
+    selftest does not depend on whatever is in the running user's config.
+    """
     strings = UI.get(lang, UI["en"])
     cards = "\n".join(card_html(n, i + 1, out_dir, strings) for i, n in enumerate(notes))
     doc = TEMPLATE_PATH.read_text(encoding="utf-8")
     for token, value in {
         "{{LANG}}": html.escape(lang, quote=True),
+        "{{THEMES}}": themes.catalogue_css(),
+        "{{THEME_ATTR}}": themes.attr(theme),
+        "{{THEME_LABEL}}": html.escape(strings["theme_label"]),
+        "{{SWATCHES}}": build_swatches(theme, strings),
+        "{{PAYLOADS}}": build_payloads(),
         "{{TITLE}}": html.escape(strings["title"]),
         "{{TALLY}}": build_tally(notes, strings),
         "{{PLACEHOLDER}}": html.escape(strings["placeholder"], quote=True),
@@ -265,6 +323,48 @@ def _selftest() -> int:
     assert "No notes yet" in empty and "{{" not in empty
     assert 'class="chips"' not in empty, "no chip row at all when there is nothing to file"
 
+    # Themes: every palette ships in the page, and the chosen one is baked onto
+    # <html> so the first paint is already right.
+    for name in themes.THEMES:
+        assert f'html[data-theme="{name}"]' in page, f"{name} is missing from the page"
+    assert 'class="themer"' in page and page.count('class="swatch"') == len(themes.NAMES)
+    assert "<html lang=\"en\">" in page, "auto bakes no attribute at all"
+    assert 'aria-pressed="true"' in page, "the theme in force is marked in the menu"
+
+    baked = build_gallery([video], out_dir, notes_dir, theme="bureau")
+    assert '<html lang="en" data-theme="bureau">' in baked
+    assert '"bureau" aria-pressed="true"' in baked, "the baked theme is the pressed swatch"
+    assert "{{" not in baked
+
+    spanish = build_gallery([video], out_dir, notes_dir, lang="es")
+    assert "<summary>Tema</summary>" in spanish, "the menu label is translated"
+
+    # Themes, the seam that has no other test: the gallery packs a value set
+    # into a card's link and the note's inline script unpacks it. The two live
+    # in different files and different languages, so assert they still agree —
+    # a rename on either side is silent otherwise.
+    packed = json.loads(build_payloads())
+    assert set(packed) == set(themes.THEMES), "one payload per theme, and auto needs none"
+    for name, blob in packed.items():
+        assert json.loads(base64.b64decode(blob)) == themes.payload(name), name
+
+    note_template = Path(__file__).resolve().parent.parent / "assets" / "template.html"
+    note = note_template.read_text(encoding="utf-8")
+    fragment = re.search(r"/\[#&\]t=\(\[([^\]]+)\]\+\)/", note)
+    assert fragment, "the note no longer reads a #t= payload — did the head script change?"
+    allowed = re.compile(f"^[{re.escape(fragment.group(1))}]+$".replace("\\-", "-"))
+    for name, blob in packed.items():
+        assert allowed.match(blob), f"{name}: base64 the note's own regex would not match"
+    for key in ("vars", "scheme", "fonts"):
+        assert f"t.{key}" in note, f"the note stopped reading {key} out of the payload"
+
+    themed = build_gallery([video], out_dir, notes_dir, theme="bureau")
+    for name in themes.THEMES:
+        assert f'html[data-theme="{name}"]' in themed, (
+            f"{name} missing: the gallery is the one file that carries the catalogue"
+        )
+    assert 'data-set-theme="barbie"' in themed and "window.themePayloads=" in themed
+
     print("selftest: ok")
     return 0
 
@@ -277,6 +377,8 @@ def main() -> int:
     ap.add_argument("--notes-dir", default=None, help=f"Where the notes live (default: {NOTES_DIR})")
     ap.add_argument("--out", default=None, help=f"Gallery file to write (default: {DEFAULT_OUT})")
     ap.add_argument("--lang", default=None, help="en|es (default: ~/take-notes/config.json, else en)")
+    ap.add_argument("--theme", default=None,
+                    help=f"{'|'.join(themes.NAMES)} for this build only; themes.py --set makes it stick")
     ap.add_argument("--no-open", action="store_true", help="Do not open a browser")
     ap.add_argument("--selftest", action="store_true", help="Run internal asserts and exit")
     args = ap.parse_args()
@@ -287,6 +389,13 @@ def main() -> int:
     notes_dir = Path(args.notes_dir).expanduser() if args.notes_dir else NOTES_DIR
     out = Path(args.out).expanduser() if args.out else DEFAULT_OUT
     lang = args.lang if args.lang in UI else config_lang()
+    # A flag beats the config for this one build, like --lang; an unknown name
+    # is reported rather than silently applied.
+    if args.theme is not None and args.theme not in themes.NAMES:
+        print(f"gallery: unknown theme {args.theme!r} — pick one of {', '.join(themes.NAMES)}",
+              file=sys.stderr)
+        return 1
+    theme = args.theme or themes.configured_theme()
 
     if not notes_dir.is_dir():
         print(f"gallery: no notes directory at {notes_dir}", file=sys.stderr)
@@ -294,7 +403,9 @@ def main() -> int:
 
     notes = collect(notes_dir)
     out.parent.mkdir(parents=True, exist_ok=True)
-    out.write_text(build_gallery(notes, out.parent, notes_dir, lang=lang), encoding="utf-8")
+    out.write_text(
+        build_gallery(notes, out.parent, notes_dir, lang=lang, theme=theme), encoding="utf-8"
+    )
 
     print(f"gallery: {len(notes)} note(s) -> {out}")
     if not args.no_open:

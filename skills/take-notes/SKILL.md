@@ -5,13 +5,13 @@ license: MIT
 compatibility: Requires uv. Video sources also need yt-dlp and ffmpeg, plus network access; an optional Groq or OpenAI key enables Whisper for videos without captions.
 metadata:
   author: davertor
-  version: "1.2.0"
+  version: "1.3.0"
 # Claude Code extensions below — not in the agentskills.io spec, and read at the
 # top level rather than under `metadata`, which is where Claude Code looks.
 # `allowed-tools` stays comma-separated: the spec asks for spaces but marks the
 # field experimental ("support may vary"), and commas are what Claude Code
 # parses today. Do not "correct" either without testing in Claude Code first.
-argument-hint: "<url> [more-urls…] [focus] [--lang en|es] | --tags | --add-tag X | --remove-tag X | --retag"
+argument-hint: "<url> [more-urls…] [focus] [--lang en|es] | --tags | --add-tag X | --remove-tag X | --retag | --theme [name]"
 allowed-tools: Bash, Read, WebFetch, AskUserQuestion
 disable-model-invocation: true
 ---
@@ -32,8 +32,8 @@ The optional focus does two things: it narrows what Step 1 asks the source for
 whole thing and fetching only the part that matters — and it narrows what the
 finished notes emphasise in Step 3-4. Skip it to cover a source in full; add it
 ("just the API design part") when only part of a long source is relevant.
-`--tags`, `--add-tag`, and `--remove-tag` manage the tag vocabulary instead —
-see Step 0.
+`--tags`, `--add-tag`, and `--remove-tag` manage the tag vocabulary instead, and
+`--theme` the colour palette — see Step 0.
 
 ## Resolve `SKILL_DIR` (before any command, both source types)
 
@@ -50,17 +50,19 @@ if [ ! -f "$SKILL_DIR/scripts/render.py" ]; then
 fi
 ```
 
-## Step 0 — tag management short-circuits everything else
+## Step 0 — settings management short-circuits everything else
 
-Three invocations manage the tag vocabulary instead of writing a note. If the
-invocation is one of them, run the matching command, report the result, and
-**stop** — no source, no note, nothing else in this file applies:
+These invocations manage the tag vocabulary or the theme instead of writing a
+note. If the invocation is one of them, run the matching command, report the
+result, and **stop** — no source, no note, nothing else in this file applies:
 
 | Invocation | Command |
 |---|---|
 | `/take-notes --tags` | `uv run "${SKILL_DIR}/scripts/tags.py"` |
 | `/take-notes --add-tag "AI"` | `uv run "${SKILL_DIR}/scripts/tags.py" --add "AI"` |
 | `/take-notes --remove-tag "AI"` | `uv run "${SKILL_DIR}/scripts/tags.py" --remove "AI"` |
+| `/take-notes --theme` | `uv run "${SKILL_DIR}/scripts/themes.py"` |
+| `/take-notes --theme "notebook"` | `uv run "${SKILL_DIR}/scripts/themes.py" --set "notebook"` |
 | `/take-notes --retag` | re-files existing notes — the multi-step pass below |
 
 Both editing forms are repeatable — pass `--add` or `--remove` once per tag.
@@ -69,6 +71,17 @@ rewrites only the `tags` key, so `language` survives untouched.
 
 `Unknown` cannot be removed: it is the fallback the note writer needs when a
 source fits nothing. The script says so and leaves it in place.
+
+### `--theme` — the colour the archive is painted in
+
+`auto` (the default, following the system) or one of the named themes the
+script lists. Each is a palette *and* a type stack. The script writes `theme` to the config and leaves every
+other key alone; the value is baked into the gallery and into notes written from
+then on. Ask for it in words too — "ponlo en petrol" is this command.
+
+Say so when reporting: **notes already on disk keep the colours they were
+written with.** The reader can still switch theme from the gallery's own menu,
+which applies to that browser and rides along to any note opened from a card.
 
 ### `--retag` — re-file the notes already on disk
 
@@ -185,7 +198,7 @@ and stop at the first that applies:
    broken config must never block the run.
 
 ```json
-{ "language": "es", "tags": ["Unknown", "AI", "Investing", "Engineering"] }
+{ "language": "es", "tags": ["Unknown", "AI", "Investing", "Engineering"], "theme": "notebook" }
 ```
 
 `--lang` with anything other than `en` or `es` is **not** an error to stop on,

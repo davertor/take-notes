@@ -21,12 +21,19 @@ import webbrowser
 from pathlib import Path
 
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+# The one import from the rest of the skill, and deliberately a leaf: themes.py
+# is pure palette data at import time, so this pulls in no note parsing. The
+# alternative was the same block of CSS copied into every template.
+import themes  # noqa: E402
+
+
 DEFAULT_OUT_DIR = Path.home() / "take-notes" / "html_reports"
 TEMPLATE_PATH = Path(__file__).resolve().parent.parent / "assets" / "template.html"
 ARTICLE_TEMPLATE_PATH = Path(__file__).resolve().parent.parent / "assets" / "article-template.html"
 
-# Kept in step with notes.DEFAULT_TAG, but not imported from it: render.py is
-# the one script with no dependency on the rest, and stays that way.
+# Kept in step with notes.DEFAULT_TAG, but not imported from it: render.py
+# depends on nothing but the leaf palette module, and stays that way.
 DEFAULT_TAG = "Unknown"
 
 # The only two languages Step 2 ever offers (see SKILL.md). Whole sentences,
@@ -174,6 +181,15 @@ def sources_html(sources: list[tuple[str, str]] | None) -> str:
     return f'<p class="sources">{links}</p>' if links else ""
 
 
+def fonts_link(theme: str) -> str:
+    """The stylesheet link for the faces this theme is set in.
+
+    A note links only its own; the gallery hands over a second link with the
+    payload when it sends the reader a theme set in different type.
+    """
+    return f'<link rel="stylesheet" href="{html.escape(themes.fonts_url(theme), quote=True)}">'
+
+
 def slugify(title: str, maxlen: int = 60) -> str:
     """Filename-safe ASCII slug; falls back to 'notes' when nothing survives."""
     folded = unicodedata.normalize("NFKD", title)
@@ -197,6 +213,7 @@ def build_article_document(
     tags: list[str] | None = None,
     sources: list[tuple[str, str]] | None = None,
     today: str | None = None,
+    theme: str = themes.AUTO,
 ) -> str:
     today = today or datetime.date.today().isoformat()
     strings = UI_STRINGS.get(lang, UI_STRINGS["en"])
@@ -204,6 +221,8 @@ def build_article_document(
     doc = ARTICLE_TEMPLATE_PATH.read_text(encoding="utf-8")
     for token, value in {
         "{{LANG}}": html.escape(lang, quote=True),
+        "{{PALETTE}}": themes.palette_css(theme),
+        "{{FONTS}}": fonts_link(theme),
         "{{TITLE}}": html.escape(title),
         "{{BYLINE}}": html.escape(byline) if byline else "",
         "{{URL}}": html.escape(url or "", quote=True),
@@ -260,6 +279,7 @@ def build_video_document(
     tags: list[str] | None = None,
     sources: list[tuple[str, str]] | None = None,
     today: str | None = None,
+    theme: str = themes.AUTO,
 ) -> str:
     thumb = thumbnail or (f"https://i.ytimg.com/vi/{video_id}/hqdefault.jpg" if video_id else "")
     today = today or datetime.date.today().isoformat()
@@ -267,6 +287,8 @@ def build_video_document(
     doc = TEMPLATE_PATH.read_text(encoding="utf-8")
     for token, value in {
         "{{LANG}}": html.escape(lang, quote=True),
+        "{{PALETTE}}": themes.palette_css(theme),
+        "{{FONTS}}": fonts_link(theme),
         "{{TITLE}}": html.escape(title),
         "{{THUMBNAIL}}": html.escape(thumb, quote=True),
         "{{URL}}": html.escape(url or "", quote=True),
@@ -442,6 +464,36 @@ def _selftest() -> int:
         assert '<p class="sources">' in doc, "both layouts carry the companion row"
         assert "{{" not in doc
 
+    # Themes: a note carries the values it was rendered with and no catalogue,
+    # which is what keeps a note written today from going stale when a theme is
+    # added tomorrow. It never learns a theme's name.
+    builders = {
+        "video": lambda **kw: build_video_document("T", "<p>ok</p>", video_id="abc123", **kw),
+        "article": lambda **kw: build_article_document("T", "<p>ok</p>", **kw),
+    }
+    for layout, build in builders.items():
+        auto = build(today="2026-01-01")
+        assert auto.count(":root {") >= 2 and "prefers-color-scheme: dark" in auto, (
+            f"{layout}: auto bakes the light/dark pair — it cannot resolve to one set"
+        )
+        assert "data-theme" not in auto, "a note names no theme"
+        for name, palette in themes.THEMES.items():
+            doc = build(theme=name, today="2026-01-01")
+            where = f"{name} in {layout}"
+            assert "{{" not in doc, where
+            for token in ("paper", "ink", "pen"):
+                assert f"--{token}: {palette[token]};" in doc, f"{where}: --{token}"
+            stack = themes.STACKS[palette["stack"]]
+            assert f"--font-display: {stack['display']};" in doc, where
+            assert f"--display-weight: {stack['weight']};" in doc, where
+            assert fonts_link(name) in doc, f"{where}: wrong font stylesheet"
+            for other, sibling in themes.THEMES.items():
+                if other != name:
+                    assert sibling["paper"] not in doc, f"{where}: {other} leaked in"
+        assert build(theme="nonsense", today="2026-01-01").count(":root {") == auto.count(":root {"), (
+            "an unknown name degrades to auto"
+        )
+
     assert build_article_meta(None, None) == ""
     assert build_article_meta("Jan 1, 2026", None) == "Jan 1, 2026"
     assert "&middot;" in build_article_meta("Jan 1, 2026", "6 min read")
@@ -480,6 +532,8 @@ def main() -> int:
         help=f"Topic tag; repeatable, first is the primary one (default: {DEFAULT_TAG})",
     )
     ap.add_argument("--out-dir", default=None, help=f"Output dir (default: {DEFAULT_OUT_DIR})")
+    ap.add_argument("--theme", default=None,
+                    help=f"{'|'.join(themes.NAMES)} (default: ~/take-notes/config.json, else auto)")
     ap.add_argument("--no-open", action="store_true", help="Do not open a browser")
     ap.add_argument("--selftest", action="store_true", help="Run internal asserts and exit")
     args = ap.parse_args()
@@ -500,6 +554,14 @@ def main() -> int:
     out_dir.mkdir(parents=True, exist_ok=True)
     target = out_dir / f"{datetime.date.today().isoformat()}-{slugify(args.title)}.html"
 
+    # A flag beats the config for this note, like --lang; an unknown name is
+    # reported rather than silently applied.
+    if args.theme is not None and args.theme not in themes.NAMES:
+        print(f"render: unknown theme {args.theme!r} — pick one of {', '.join(themes.NAMES)}",
+              file=sys.stderr)
+        return 1
+    theme = args.theme or themes.configured_theme()
+
     if args.video_id:
         # Localise raw values; anything already human-readable passes through.
         published = format_date(args.published, args.lang) or args.published
@@ -510,13 +572,13 @@ def main() -> int:
             byline=args.byline, channel_url=args.channel_url, span=span, url=args.url,
             video_id=args.video_id, thumbnail=args.thumbnail,
             published=published, views=views, lang=args.lang, tags=args.tag,
-            sources=args.source,
+            sources=args.source, theme=theme,
         )
     else:
         document = build_article_document(
             args.title, body,
             byline=args.byline, span=args.span, url=args.url, lang=args.lang,
-            tags=args.tag, sources=args.source,
+            tags=args.tag, sources=args.source, theme=theme,
         )
 
     # Re-running on the same source the same day updates that note rather than
