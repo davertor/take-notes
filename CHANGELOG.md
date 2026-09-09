@@ -1,9 +1,51 @@
 # Changelog
 
 All notable changes to this project are documented here, in the
-[Keep a Changelog](https://keepachangelog.com/) style. Maintained by hand: a
-release adds a section here, bumps `skills/take-notes/SKILL.md`'s `version`,
-and tags — see [CONTRIBUTING.md](CONTRIBUTING.md).
+[Keep a Changelog](https://keepachangelog.com/) style. The sections here are
+written by hand; the version and the tag come from `cz bump` — see
+[AGENTS.md](AGENTS.md) and [CONTRIBUTING.md](CONTRIBUTING.md).
+
+## [1.4.0]
+
+### Added
+
+- **Notes take the shape of their source.** A genre router picks the layout:
+  `offprint` (the linear argument this skill has always written) stays the
+  default, `fieldguide` lays out a comparative catalogue — a matrix, a card per
+  entry, a recommendation — and `recipe` gives a dish its ingredients column,
+  numbered method with times and settings, and oven/power settings raised into
+  the masthead. The agent classifies the content and says which genre it chose;
+  `--genre` overrides it. Genre is a property of the content, not a taste, so
+  there is no default to configure.
+- Each genre carries its body contract (`genres/<name>.md`) next to its template,
+  so adding a fourth is a row in the router, a contract and a template. The
+  gallery labels a note with its genre; Markdown export carries `genre:`.
+
+### Changed
+
+- **Releases are cut with `cz bump`**, which reads the Conventional Commits since
+  the last tag and rewrites the version in the five files that mirror it. It runs
+  through `uvx`, so it is not a dependency. `AGENTS.md` is new and says so first.
+- CI now cross-checks `marketplace.json`'s version, which had silently drifted a
+  release behind.
+
+## [1.3.0]
+
+### Added
+
+- **Themes.** A settings menu in the gallery switches colour and typography
+  across the archive and every note: `paper`, `field`, `graphite`, `blueprint`,
+  `bureau`, `acid`, `barbie`, `petrol` and `notebook`, plus `auto`, which follows
+  the system. Each is a full editorial identity — its own display, body and UI
+  faces, its own letterforms and paper texture — not a recolour. Set the default
+  once in `~/take-notes/config.json`; `render.py --theme` bakes one into a note.
+- **A note carries values, never a theme name.** `scripts/themes.py` is the single
+  source of truth for the tokens; a rendered note gets only the resolved set
+  (442 B), and the gallery — a derived file, regenerated on every note — passes a
+  different set through the URL fragment when the reader switches. So a theme
+  added in a year's time reaches notes written today, without rewriting them.
+- Every colour pair is asserted against WCAG AA in `themes.py --selftest`, and a
+  template may no longer hard-code a hex or a font family.
 
 ## [1.2.0]
 
