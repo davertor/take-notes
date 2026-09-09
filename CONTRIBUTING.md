@@ -28,6 +28,28 @@ done
 CI runs exactly this, plus a check that the plugin manifests parse and their
 version matches `SKILL.md`'s.
 
+## Releases
+
+Cut from `main` after a PR merges, never inside the feature branch:
+
+```sh
+uvx --from commitizen cz bump --yes && git push --follow-tags
+```
+
+[commitizen](https://commitizen-tools.github.io/commitizen/) reads the
+Conventional Commits since the last tag, decides whether that is a patch, a
+minor or a major, and rewrites the version in the five files that mirror it —
+`SKILL.md`, both `plugin.json`, `marketplace.json` and the README badge — then
+commits `chore(release): X.Y.Z` and tags. It runs through `uvx`, so it is not a
+dependency of anything: nothing is installed and no manifest mentions it. The
+configuration is in [`.cz.toml`](.cz.toml).
+
+**The CHANGELOG stays hand-written.** commitizen is told not to touch it,
+because the entries here are prose explaining what changed and why, and the
+generated form is a list of commit subjects. Write the section yourself;
+`cz changelog --dry-run` prints the commits grouped by type as a checklist so
+none is missed.
+
 ## House rules
 
 - **Stdlib only.** Every script runs under `uv` with no dependencies. A new
