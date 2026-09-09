@@ -1,0 +1,30 @@
+# Releases are cut with commitizen, run through uvx so nothing is installed:
+#
+#     uvx --from commitizen cz bump --yes && git push --follow-tags
+#
+# It reads the Conventional Commits since the last tag, works out whether that
+# is a patch, a minor or a major, writes the new number into every file that
+# mirrors it, commits and tags. See CONTRIBUTING.md § Releases.
+[tool.commitizen]
+name = "cz_conventional_commits"
+version = "1.3.0"
+tag_format = "v$version"
+
+# Match the release commits this repo already has, rather than commitizen's
+# default `bump:` — which is not one of the types CONTRIBUTING.md allows.
+bump_message = "chore(release): $new_version"
+
+# The changelog here is prose that explains a feature, not a list of commit
+# subjects, so it stays hand-written. `cz changelog --dry-run` is still useful
+# as a draft: it groups the commits so none is forgotten.
+update_changelog_on_bump = false
+
+# Every place the version is mirrored. The text after the colon is the line to
+# match; the version on that line is what gets replaced.
+version_files = [
+  "skills/take-notes/SKILL.md:^  version:",
+  ".claude-plugin/plugin.json:\"version\":",
+  ".codex-plugin/plugin.json:\"version\":",
+  ".claude-plugin/marketplace.json:\"version\":",
+  "README.md:img.shields.io/badge/version-",
+]
