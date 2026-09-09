@@ -1,0 +1,504 @@
+<!doctype html>
+<html lang="{{LANG}}" data-genre="{{GENRE}}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{TITLE}}</title>
+<!-- Theme, before the first paint. The note holds the values it was rendered
+     with — never a catalogue of theme names — so a theme added years from now
+     cannot leave this file stale. A note opened from the gallery is handed a
+     different value set in the fragment and applies it to the same tokens,
+     fonts included, without ever learning what the theme is called. -->
+<script>try{var m=/[#&]t=([A-Za-z0-9+/=]+)/.exec(location.hash);if(m){
+var t=JSON.parse(atob(m[1])),r=document.documentElement;
+for(var k in t.vars)r.style.setProperty(k,t.vars[k]);
+if(t.scheme)r.style.colorScheme=t.scheme;
+if(t.fonts){var l=document.createElement('link');l.rel='stylesheet';l.href=t.fonts;
+document.head.appendChild(l);}}}catch(e){}</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+{{FONTS}}
+<style>
+/* ---------------------------------------------------------------------------
+   Recipe — the card-file genre. A cover (the poster, when the source is a
+   video), a ticket of facts lifted out of the body, the ingredients pinned in
+   a rail you can keep beside the stove, and the method as numbered steps with
+   the time and the setting each one needs. Same paper/ink/pen tokens and
+   typefaces as the offprint; pen marks exactly what a cook underlines —
+   quantities, minutes, degrees.
+
+   Colour comes from scripts/themes.py — one palette, emitted into every
+   template so a hex is edited in one place. Layout tokens stay here.
+   --------------------------------------------------------------------------- */
+{{PALETTE}}
+:root {
+  --rail:    21rem;
+  --measure: 44rem;
+  --sheet:   80rem;
+  --ruled:   1.785rem;  /* = the body leading, so writing lands on the line */
+}
+* { box-sizing: border-box; }
+html {
+  font-size: clamp(1rem, 0.795rem + 0.284vw, 1.25rem);
+  scroll-behavior: smooth;
+}
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+
+body {
+  margin: 0;
+  background: var(--desk);
+  color: var(--ink);
+  font: 400 1.0625rem/1.68 var(--font-body);
+  font-optical-sizing: auto;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+body::after {
+  content: ""; position: fixed; inset: 0; z-index: 9; pointer-events: none;
+  opacity: var(--grain);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='4'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+a { color: var(--pen); text-decoration-thickness: .5px; text-underline-offset: 3px; }
+strong { font-weight: 600; }
+p { margin: 0 0 1rem; }
+ul, ol { padding-left: 1.1rem; margin: 0 0 1rem; }
+li { margin: 0 0 .7rem; padding-left: .25rem; }
+li::marker { color: var(--pen); }
+code {
+  font: 400 .84em/1.5 var(--font-ui);
+  background: var(--raised); padding: .1em .38em; border-radius: var(--radius);
+}
+pre {
+  background: var(--raised); padding: 1rem 1.1rem; margin: 0 0 1rem;
+  border-left: 2px solid var(--rule); overflow-x: auto;
+  font-size: .84rem; line-height: 1.6;
+}
+pre code { background: none; padding: 0; }
+blockquote {
+  margin: 1.3rem 0; padding: .1rem 0 .1rem 1.25rem;
+  border-left: 2px solid var(--pen);
+  font-style: italic; color: var(--ink-70);
+}
+blockquote p:last-child { margin-bottom: 0; }
+table { border-collapse: collapse; width: 100%; font-size: .92rem; margin: 0 0 1rem; }
+th, td { text-align: left; padding: .5rem .7rem; border-bottom: 1px solid var(--rule); }
+th {
+  font: 500 .68rem/1 var(--font-ui);
+  text-transform: var(--label-case); letter-spacing: calc(.08em * var(--label-tracking)); color: var(--ink-70);
+}
+figure { margin: 0 0 1rem; }
+figure img { width: 100%; display: block; border: var(--border) solid var(--rule); background: var(--raised); border-radius: var(--radius); }
+figcaption {
+  font: 400 .68rem/1.6 var(--font-ui);
+  color: var(--ink-45); margin-top: .45rem;
+}
+
+.sheet {
+  max-width: var(--sheet); margin-inline: auto; min-height: 100vh;
+  background-image: var(--texture);
+  background-color: var(--paper);
+}
+
+/* --- Masthead: cover, title, and the ticket ---------------------------------- */
+.masthead { padding: 2.5rem 3rem 2rem; border-bottom: 1px solid var(--rule); }
+.poster {
+  display: block; position: relative; max-width: 38rem; margin: 0 0 1.6rem;
+  background: var(--raised); border: var(--border) solid var(--rule); border-radius: var(--radius); }
+.poster img { width: 100%; display: block; aspect-ratio: 16 / 9; object-fit: cover; }
+.poster::after {
+  content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 40%;
+  background: linear-gradient(transparent, rgba(0,0,0,.55)); pointer-events: none;
+}
+.poster .cue {
+  position: absolute; left: 0; bottom: 0; z-index: 1;
+  display: inline-flex; align-items: center; gap: .35rem; padding: .32rem .6rem;
+  background: var(--pen); color: var(--paper);
+  font: 500 .62rem/1 var(--font-ui);
+  letter-spacing: calc(.12em * var(--label-tracking)); text-transform: var(--label-case);
+}
+.kicker {
+  display: block; margin: 0 0 .6rem;
+  font: 500 .68rem/1 var(--font-ui);
+  letter-spacing: calc(.15em * var(--label-tracking)); text-transform: var(--label-case); color: var(--pen);
+}
+h1 {
+  max-width: 24ch; margin: 0 0 .7rem;
+  font: var(--display-weight) clamp(2rem, 4vw, 3.3rem)/1.05 var(--font-display);
+  font-variation-settings: var(--display-axes);
+  letter-spacing: var(--display-tracking); text-wrap: balance;
+}
+.meta {
+  font: 400 .72rem/1.7 var(--font-ui);
+  color: var(--ink-70); margin: 0 0 1.1rem; text-wrap: pretty;
+}
+.meta a { color: inherit; text-decoration-color: var(--rule); }
+.meta a:hover { color: var(--pen); }
+.watch {
+  display: inline-flex; align-items: baseline; gap: .4rem;
+  font: 500 .68rem/1 var(--font-ui);
+  letter-spacing: calc(.07em * var(--label-tracking)); text-transform: var(--label-case);
+  color: var(--ink); text-decoration: none;
+  border-bottom: var(--border) solid var(--pen); padding-bottom: .32rem;
+  transition: color .2s ease, gap .2s ease;
+}
+.watch:hover { color: var(--pen); gap: .65rem; }
+.watch span { transition: transform .2s ease; }
+.watch:hover span { transform: translateX(2px); }
+.sources { display: flex; flex-wrap: wrap; gap: .45rem 1.2rem; margin: .95rem 0 0; }
+.sources a {
+  font: 500 .64rem/1 var(--font-ui);
+  letter-spacing: calc(.07em * var(--label-tracking)); text-transform: var(--label-case);
+  color: var(--ink-45); text-decoration: none; transition: color .2s ease;
+}
+.sources a::before { content: "+ "; color: var(--rule); }
+.sources a:hover { color: var(--pen); }
+.tags { display: flex; flex-wrap: wrap; gap: .35rem; margin: .95rem 0 0; }
+.tag {
+  font: 500 .6rem/1.35 var(--font-ui);
+  letter-spacing: calc(.1em * var(--label-tracking)); text-transform: var(--label-case); color: var(--ink-45);
+  border: var(--border) solid var(--rule);
+  border-radius: var(--radius); padding: .18rem .42rem;
+}
+.tag.is-primary { color: var(--pen); border-color: var(--pen); }
+
+/* The ticket: the Card section's <dl>, lifted here by the script. One column
+   per fact — label over value — so nothing needs a wrapper. */
+#index { margin-top: 1.5rem; }
+#index:empty { display: none; }
+#index h2 { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+#index dl {
+  display: grid; grid-auto-flow: column; grid-template-rows: auto auto;
+  grid-auto-columns: minmax(6.5rem, max-content); width: fit-content; max-width: 100%;
+  margin: 0; border: var(--border) solid var(--ink); background: var(--surface); overflow-x: auto; border-radius: var(--radius); }
+#index dt {
+  padding: .65rem .95rem .1rem; margin: 0;
+  font: 500 .58rem/1.4 var(--font-ui);
+  letter-spacing: calc(.14em * var(--label-tracking)); text-transform: var(--label-case); color: var(--ink-45);
+  border-left: 1px dashed var(--rule);
+}
+#index dd {
+  padding: 0 .95rem .65rem; margin: 0;
+  font: 600 1rem/1.3 var(--font-display); font-variation-settings: var(--display-axes);
+  border-left: 1px dashed var(--rule); white-space: nowrap;
+}
+#index dt:first-of-type, #index dd:first-of-type { border-left: none; }
+
+/* --- Pantry rail + the method ------------------------------------------------- */
+.layout { display: flex; align-items: flex-start; }
+.rail {
+  width: var(--rail); flex: 0 0 var(--rail);
+  position: sticky; top: 0; align-self: flex-start;
+  max-height: 100vh; overflow-y: auto; overscroll-behavior: contain;
+  padding: 2.25rem 1.9rem 2.5rem;
+  background: var(--surface); border-right: var(--border) solid var(--rule);
+  scrollbar-width: thin; scrollbar-color: var(--rule) transparent;
+}
+.rail:empty { display: none; }
+.rail h2 {
+  margin: 0 0 1rem; padding: 0 0 .7rem; border-bottom: var(--border) solid var(--rule);
+  font: 500 .64rem/1 var(--font-ui);
+  letter-spacing: calc(.15em * var(--label-tracking)); text-transform: var(--label-case); color: var(--ink-45);
+}
+.rail h3 {
+  margin: 1.2rem 0 .45rem;
+  font: 600 .95rem/1.3 var(--font-display); font-variation-settings: var(--display-axes);
+}
+.ingredients { list-style: none; padding: 0; margin: 0; }
+.ingredients li {
+  position: relative; padding-left: 1.55rem; margin: 0 0 .55rem;
+  font-size: .95rem; line-height: 1.5;
+}
+/* A box to tick — printable, and a cook's habit. */
+.ingredients li::before {
+  content: ""; position: absolute; left: .1rem; top: .34em;
+  width: .78em; height: .78em; border: var(--border) solid var(--ink-45); background: var(--paper); border-radius: var(--radius); }
+.ingredients strong { color: var(--pen); font-weight: 600; font-variant-numeric: tabular-nums; }
+
+.column { flex: 1; min-width: 0; padding: 0 0 5rem; }
+.spybar {
+  position: sticky; top: 0; z-index: 8;
+  background: color-mix(in srgb, var(--paper) 90%, transparent);
+  backdrop-filter: blur(14px) saturate(1.3);
+  border-bottom: var(--border) solid var(--rule);
+}
+nav.spy {
+  display: flex; gap: 1.35rem; flex-wrap: nowrap;
+  max-width: var(--measure); margin-inline: auto;
+  padding: 1.1rem 3rem .95rem; overflow-x: auto; scrollbar-width: none;
+}
+nav.spy::-webkit-scrollbar { display: none; }
+nav.spy a {
+  position: relative; text-decoration: none; white-space: nowrap;
+  font: 500 .64rem/1 var(--font-ui);
+  letter-spacing: calc(.09em * var(--label-tracking)); text-transform: var(--label-case);
+  color: var(--ink-70); padding-bottom: .4rem; transition: color .25s ease;
+}
+nav.spy a::after {
+  content: ""; position: absolute; left: 0; bottom: 0; height: 2px; width: 100%;
+  background: var(--pen); transform: scaleX(0); transform-origin: left; transition: transform .3s ease;
+}
+nav.spy a:hover { color: var(--ink); }
+nav.spy a[aria-current="true"] { color: var(--pen); }
+nav.spy a[aria-current="true"]::after { transform: scaleX(1); }
+
+article { max-width: var(--measure); margin-inline: auto; padding: 2.5rem 3rem 0; }
+#body > section {
+  padding: 0 0 2.5rem; margin: 0 0 2.5rem;
+  border-bottom: var(--border) solid var(--rule); scroll-margin-top: 4.5rem;
+}
+#body > section:last-child { border-bottom: none; margin-bottom: 0; }
+#body > section > h2 {
+  margin: 0 0 1rem;
+  font: 500 .66rem/1.45 var(--font-ui);
+  letter-spacing: calc(.1em * var(--label-tracking)); text-transform: var(--label-case); color: var(--ink-45);
+}
+#body > section > h3 {
+  font: 600 1.08rem/1.35 var(--font-display); font-variation-settings: var(--display-axes);
+  margin: 1.75rem 0 .55rem;
+}
+#body > section > :last-child { margin-bottom: 0; }
+/* The description opens with a raised capital; the takeaway is set apart. */
+#body > section:first-of-type > p:first-of-type::first-letter {
+  float: left; line-height: .74; padding: .04em .09em 0 0;
+  font: var(--display-weight) 3.15em/1 var(--font-display); font-variation-settings: var(--display-axes);
+  color: var(--pen);
+}
+#body > section.is-takeaway > p {
+  font: 400 1.16rem/1.5 var(--font-display); font-variation-settings: var(--display-axes);
+  letter-spacing: -.005em; text-wrap: pretty;
+}
+#body > section.is-takeaway strong { font-weight: 500; }
+
+/* Steps: a numeral in the margin — or the timestamp, when the step opens with
+   one — and the instruction beside it. The script wraps each step's text so
+   the grid has one cell to place; with JS off it is an ordinary list. */
+.steps { list-style: none; padding: 0; margin: 0; counter-reset: step; }
+.steps > li {
+  counter-increment: step; margin: 0; padding: 1.1rem 0;
+  display: grid; grid-template-columns: 3.6rem minmax(0, 1fr); gap: 0 1rem;
+  border-top: 1px dashed var(--rule);
+}
+.steps > li:first-child { border-top: none; padding-top: 0; }
+.steps > li::before {
+  content: counter(step, decimal-leading-zero); grid-column: 1;
+  font: var(--display-weight) 1.7rem/1 var(--font-display); font-variation-settings: var(--display-axes);
+  color: var(--pen);
+}
+.steps > li:has(> .stamp)::before { content: none; }
+.steps .stamp {
+  grid-column: 1; align-self: start; padding-top: .3rem;
+  font: 500 .72rem/1 var(--font-ui);
+  font-variant-numeric: tabular-nums; text-decoration: none;
+}
+.steps .do { grid-column: 2; min-width: 0; }
+.steps .do > strong {
+  display: block; margin: 0 0 .3rem;
+  font: 600 1.08rem/1.3 var(--font-display); font-variation-settings: var(--display-axes);
+}
+.time, .setting {
+  display: inline-block; margin: .45rem .3rem 0 0; padding: .2rem .5rem;
+  font: 500 .6rem/1.3 var(--font-ui);
+  letter-spacing: calc(.08em * var(--label-tracking)); text-transform: var(--label-case); vertical-align: middle;
+}
+.time { background: var(--pen); color: var(--paper); }
+.setting { border: var(--border) solid var(--rule); color: var(--ink-70); border-radius: var(--radius); }
+
+/* A run of figures — the gallery — lays out two up. */
+#body > section:has(> figure + figure) {
+  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.2rem;
+}
+#body > section:has(> figure + figure) > :not(figure) { grid-column: 1 / -1; }
+
+footer {
+  max-width: var(--measure); margin-inline: auto; padding: 1.4rem 3rem 2.5rem;
+  border-top: var(--border) solid var(--rule);
+  font: 400 .7rem/1.7 var(--font-ui); color: var(--ink-45);
+}
+footer a { color: inherit; text-decoration-color: var(--rule); }
+
+/* --- Entrance --------------------------------------------------------------- */
+@media (prefers-reduced-motion: no-preference) {
+  .masthead > *, .rail > *, nav.spy, #body > section { animation: rise .6s cubic-bezier(.22,.61,.36,1) backwards; }
+  h1 { animation-delay: .05s; }
+  #index { animation-delay: .12s; }
+  .rail > * { animation-delay: .16s; }
+  #body > section:nth-of-type(1) { animation-delay: .14s; }
+  #body > section:nth-of-type(n+2) { animation-delay: .2s; }
+}
+@keyframes rise { from { opacity: 0; transform: translateY(8px); } }
+
+/* --- Narrow ------------------------------------------------------------------ */
+@media (max-width: 900px) {
+  .masthead { padding: 1.75rem 2rem 1.5rem; }
+  .layout { display: block; }
+  .rail {
+    width: auto; max-height: none; position: static;
+    border-right: none; border-bottom: var(--border) solid var(--rule); padding: 1.5rem 2rem 1.75rem;
+  }
+  article, nav.spy, footer { padding-left: 2rem; padding-right: 2rem; }
+  #body > section:has(> figure + figure) { grid-template-columns: 1fr; }
+  table { display: block; width: max-content; max-width: 100%; overflow-x: auto; }
+}
+
+/* --- Print: the one page that goes to the kitchen --------------------------- */
+@media print {
+  /* !important, or an injected theme would outrank this and print in colour:
+     the reader's chosen values arrive as inline styles on <html>, and an
+     inline style beats every stylesheet rule that is not important. */
+  :root {
+    --paper: #fff !important; --surface: #fff !important; --raised: #f4f4f4 !important; --desk: #fff !important;
+    --ink: #000 !important; --ink-70: #333 !important; --ink-45: #555 !important; --rule: #bbb !important; --pen: #000 !important;
+    --band: #fff !important; --on-band: #000 !important; --mark: #e8e8e8 !important;
+  }
+  body { font-size: 10.5pt; }
+  body::after, .spybar, .watch, .sources, .poster { display: none; }
+  .masthead { padding: 0 0 1rem; }
+  .layout { display: block; }
+  .rail { width: auto; position: static; padding: 0 0 1rem; border-right: none; border-bottom: 1pt solid #000; background: none; }
+  article { padding: 1rem 0 0; }
+  #body > section { break-inside: avoid; }
+  .steps > li { break-inside: avoid; }
+  .time { border: 1pt solid #000; }
+  #body > section:first-of-type > p:first-of-type::first-letter { font-size: inherit; float: none; color: inherit; padding: 0; }
+  footer { padding: .8rem 0 0; }
+}
+</style>
+</head>
+<body>
+<div class="sheet">
+  <header class="masthead">
+    {{MASTHEAD}}
+    <h1>{{TITLE}}</h1>
+    <p class="meta">{{META}}</p>
+    <a class="watch" href="{{URL}}" target="_blank" rel="noopener">{{OPEN}} <span>&#8594;</span></a>
+    {{SOURCES}}
+    {{TAGS}}
+    <div id="index"></div>
+  </header>
+
+  <div class="layout">
+    <aside class="rail" id="pantry"></aside>
+
+    <div class="column">
+      <div class="spybar"><nav class="spy" id="spy" aria-label="Sections"></nav></div>
+      <article id="body">
+{{BODY}}
+      </article>
+      <footer>{{FOOTER}}</footer>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+  // The body arrives as a flat run of <h2>-delimited blocks (the genre's
+  // contract in genres/recipe.md). Progressive enhancement, all of it — with
+  // JS off the note still reads top to bottom, ingredients then method:
+  //   1. group each <h2> and its siblings into a <section>
+  //   2. lift the Card section (dl.facts) into the masthead ticket, and the
+  //      Ingredients section (ul.ingredients) into the pantry rail — found by
+  //      class, never by heading, so the language of the note is irrelevant
+  //   3. give each step one text cell, with its timestamp in the margin
+  //   4. wire the sticky nav as a scroll-spy over what stays in the body
+  var body = document.getElementById('body');
+  var index = document.getElementById('index');
+  var pantry = document.getElementById('pantry');
+  var spy = document.getElementById('spy');
+  if (!body) return;
+
+  var takeawayWords = /\b(takeaway|conclusion|conclusión|idea clave|lo esencial)\b/i;
+
+  function slug(text, i) {
+    var s = text.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    return s || 'section-' + i;
+  }
+
+  // 3. One cell per step: the leading timestamp (if any) becomes the stamp,
+  // everything else folds into one span, minus the dash the contract puts
+  // after the step title.
+  function reflowStep(li) {
+    var first = li.firstElementChild;
+    var stamp = null;
+    if (first && first.tagName === 'A' && /^\d{1,2}(:\d{2}){1,2}$/.test(first.textContent.trim())) {
+      stamp = first; stamp.className = 'stamp';
+    }
+    var cell = document.createElement('span'); cell.className = 'do';
+    Array.prototype.slice.call(li.childNodes).forEach(function (n) {
+      if (n !== stamp) cell.appendChild(n);
+    });
+    cell.innerHTML = cell.innerHTML.replace(/^(\s|&nbsp;)*[—–-]\s*/, '');
+    var strong = cell.querySelector('strong');
+    if (strong && strong.nextSibling) {
+      var text = strong.nextSibling;
+      if (text.nodeType === 3) text.textContent = text.textContent.replace(/^(\s| )*[—–-]\s*/, '');
+    }
+    li.innerHTML = '';
+    if (stamp) li.appendChild(stamp);
+    li.appendChild(cell);
+  }
+
+  // 1. Group.
+  var groups = [];
+  var current = null;
+  Array.prototype.slice.call(body.children).forEach(function (node) {
+    if (node.tagName === 'H2') {
+      current = { label: node.textContent.trim(), nodes: [node] };
+      groups.push(current);
+    } else if (current) {
+      current.nodes.push(node);
+    }
+  });
+  if (!groups.length) return;
+
+  body.innerHTML = '';
+  var spied = [];
+  groups.forEach(function (group, i) {
+    var section = document.createElement('section');
+    group.nodes.forEach(function (n) { section.appendChild(n); });
+
+    // 2. Lift by class.
+    if (index && section.querySelector('dl.facts')) { index.appendChild(section); return; }
+    if (pantry && section.querySelector('ul.ingredients')) { pantry.appendChild(section); return; }
+
+    Array.prototype.slice.call(section.querySelectorAll('.steps > li')).forEach(reflowStep);
+    section.id = slug(group.label, i);
+    if (takeawayWords.test(group.label)) section.classList.add('is-takeaway');
+    body.appendChild(section);
+    spied.push(section);
+  });
+
+  // 4. Scroll-spy.
+  if (!spy || !spied.length) return;
+  spied.forEach(function (section) {
+    var h2 = section.querySelector('h2');
+    var a = document.createElement('a');
+    a.href = '#' + section.id;
+    a.textContent = h2 ? h2.textContent.trim() : section.id;
+    spy.appendChild(a);
+  });
+  var links = Array.prototype.slice.call(spy.children);
+  function mark(id) {
+    links.forEach(function (a) {
+      a.setAttribute('aria-current', a.getAttribute('href') === '#' + id ? 'true' : 'false');
+    });
+  }
+  mark(spied[0].id);
+  if (!('IntersectionObserver' in window)) return;
+  var visible = new Map();
+  var observer = new IntersectionObserver(function (entries) {
+    entries.forEach(function (entry) {
+      if (entry.isIntersecting) visible.set(entry.target.id, entry.boundingClientRect.top);
+      else visible.delete(entry.target.id);
+    });
+    var best = null;
+    spied.forEach(function (s) { if (best === null && visible.has(s.id)) best = s.id; });
+    if (best) mark(best);
+  }, { rootMargin: '-18% 0px -70% 0px', threshold: 0 });
+  spied.forEach(function (s) { observer.observe(s); });
+})();
+</script>
+</body>
+</html>

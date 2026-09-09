@@ -1,0 +1,543 @@
+<!doctype html>
+<html lang="{{LANG}}" data-genre="{{GENRE}}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{TITLE}}</title>
+<!-- Theme, before the first paint. The note holds the values it was rendered
+     with — never a catalogue of theme names — so a theme added years from now
+     cannot leave this file stale. A note opened from the gallery is handed a
+     different value set in the fragment and applies it to the same tokens,
+     fonts included, without ever learning what the theme is called. -->
+<script>try{var m=/[#&]t=([A-Za-z0-9+/=]+)/.exec(location.hash);if(m){
+var t=JSON.parse(atob(m[1])),r=document.documentElement;
+for(var k in t.vars)r.style.setProperty(k,t.vars[k]);
+if(t.scheme)r.style.colorScheme=t.scheme;
+if(t.fonts){var l=document.createElement('link');l.rel='stylesheet';l.href=t.fonts;
+document.head.appendChild(l);}}}catch(e){}</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+{{FONTS}}
+<style>
+/* ---------------------------------------------------------------------------
+   Field guide — the catalogue genre. Several things of one kind, compared on
+   the same axes: a full-bleed masthead on the theme's band, a sticky index
+   that lists every entry, numbered sections, ruled paper, and hard shadows.
+   Same paper/ink/pen tokens and typefaces as the offprint so the archive still
+   reads as one object; the composition is deliberately louder, because a
+   catalogue is scanned, not read end to end.
+
+   Colour comes from scripts/themes.py — one palette, emitted into every
+   template so a hex is edited in one place. This genre also uses `--band`
+   (solid blocks), `--on-band` (text on them) and `--mark` (the highlight, which
+   only ever carries `--ink`). Layout tokens stay here.
+   --------------------------------------------------------------------------- */
+{{PALETTE}}
+:root {
+  --rail:  15rem;
+  --wide:  92rem;
+  --ruled:   1.785rem;  /* = the body leading, so writing lands on the line */
+}
+* { box-sizing: border-box; }
+html {
+  font-size: clamp(1rem, 0.795rem + 0.284vw, 1.25rem);
+  scroll-behavior: smooth;
+}
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+
+body {
+  margin: 0;
+  color: var(--ink);
+  /* The stock's own pattern comes from the theme now (see themes.TEXTURES), so
+     a guide on notebook paper is ruled and one on bureau stock is not. */
+  background-image: var(--texture);
+  background-color: var(--paper);
+  font: 400 1.0625rem/1.68 var(--font-body);
+  font-optical-sizing: auto;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+body::after {
+  content: ""; position: fixed; inset: 0; z-index: 9; pointer-events: none;
+  opacity: var(--grain);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='4'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+a { color: var(--pen); text-decoration-thickness: .5px; text-underline-offset: 3px; }
+strong { font-weight: 600; }
+p { margin: 0 0 1rem; }
+ul, ol { padding-left: 1.1rem; margin: 0 0 1rem; }
+li { margin: 0 0 .55rem; padding-left: .25rem; }
+li::marker { color: var(--pen); }
+code {
+  font: 400 .84em/1.5 var(--font-ui);
+  background: var(--raised); padding: .1em .38em; border-radius: var(--radius);
+}
+pre {
+  background: var(--raised); padding: 1rem 1.1rem; margin: 0 0 1rem;
+  border-left: 2px solid var(--rule); overflow-x: auto;
+  font-size: .84rem; line-height: 1.6;
+}
+pre code { background: none; padding: 0; }
+blockquote {
+  margin: 1.3rem 0; padding: .1rem 0 .1rem 1.25rem;
+  border-left: 2px solid var(--pen);
+  font-style: italic; color: var(--ink-70);
+}
+blockquote p:last-child { margin-bottom: 0; }
+figure { margin: 1.5rem 0; }
+figure img { width: 100%; display: block; border: var(--border) solid var(--rule); border-radius: var(--radius); }
+figcaption {
+  font: 400 .7rem/1.6 var(--font-ui);
+  color: var(--ink-45); margin-top: .5rem;
+}
+
+/* The matrix. A header in mono, a rule per row, the row you point at lifts. */
+table {
+  border-collapse: collapse; width: 100%; font-size: .92rem; margin: 0 0 1.5rem;
+  background: color-mix(in srgb, var(--surface) 70%, transparent);
+}
+th, td { text-align: left; padding: .7rem .8rem; border-bottom: var(--border) solid var(--rule); vertical-align: top; }
+th {
+  font: 700 .64rem/1.3 var(--font-ui);
+  text-transform: var(--label-case); letter-spacing: calc(.1em * var(--label-tracking)); color: var(--ink-70);
+}
+tbody tr:hover td { background: var(--surface); }
+
+/* --- Masthead: the cover of the issue --------------------------------------- */
+.masthead {
+  min-height: 52vh;
+  padding: clamp(1.5rem, 4vw, 4.5rem);
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(17rem, .7fr);
+  gap: 3rem; align-items: end;
+  background: var(--band); color: var(--on-band);
+  position: relative; overflow: hidden;
+}
+.masthead .kicker {
+  display: block;
+  font: 700 .72rem/1 var(--font-ui);
+  letter-spacing: calc(.17em * var(--label-tracking)); text-transform: var(--label-case);
+  color: var(--mark);
+}
+.masthead .poster {
+  display: block; position: relative; max-width: 24rem; margin: 0 0 1.4rem;
+  border: var(--border) solid color-mix(in srgb, var(--on-band) 40%, transparent); border-radius: var(--radius); }
+.masthead .poster img { width: 100%; display: block; aspect-ratio: 16 / 9; object-fit: cover; }
+.masthead .poster .cue {
+  position: absolute; left: 0; bottom: 0; padding: .32rem .6rem;
+  /* --mark, not --pen: this chip sits on the --band masthead, and a theme may
+     legitimately set band == pen, which would make a pen chip invisible.
+     ink-on-mark and mark-on-band are both asserted in themes.py. */
+  background: var(--mark); color: var(--ink);
+  font: 500 .62rem/1 var(--font-ui);
+  letter-spacing: calc(.12em * var(--label-tracking)); text-transform: var(--label-case);
+}
+h1 {
+  max-width: 18ch;
+  margin: .8rem 0 0;
+  font: var(--display-weight) clamp(2.6rem, 6.5vw, 5.8rem)/.95 var(--font-display);
+  font-variation-settings: var(--display-axes);
+  letter-spacing: var(--display-tracking); text-wrap: balance;
+}
+h1 em { color: var(--mark); font-style: normal; }
+
+/* The fact sheet: what the issue is, where it came from. */
+.facts {
+  border: var(--border) solid color-mix(in srgb, var(--on-band) 45%, transparent);
+  background: color-mix(in srgb, var(--on-band) 6%, transparent);
+  backdrop-filter: blur(8px);
+  padding: 1.4rem; border-radius: var(--radius); }
+.meta {
+  font: 400 .72rem/1.8 var(--font-ui);
+  margin: 0 0 1.1rem; text-wrap: pretty;
+}
+.facts .meta { color: var(--on-band); }
+.meta a { color: inherit; text-decoration-color: var(--rule); }
+.meta a:hover { color: var(--mark); }
+.watch {
+  display: inline-flex; align-items: baseline; gap: .4rem;
+  font: 500 .68rem/1 var(--font-ui);
+  letter-spacing: calc(.07em * var(--label-tracking)); text-transform: var(--label-case);
+  color: var(--on-band); text-decoration: none;
+  border-bottom: var(--border) solid var(--mark); padding-bottom: .32rem;
+  transition: color .2s ease, gap .2s ease;
+}
+.watch:hover { color: var(--mark); gap: .65rem; }
+.watch span { transition: transform .2s ease; }
+.watch:hover span { transform: translateX(2px); }
+
+/* --- The shelf: index rail + the sections ------------------------------------ */
+.layout {
+  display: grid; grid-template-columns: var(--rail) minmax(0, 1fr);
+  max-width: var(--wide); margin-inline: auto;
+}
+.rail {
+  position: sticky; top: 0; align-self: start;
+  height: 100vh; overflow-y: auto; overscroll-behavior: contain;
+  padding: 2rem 1.25rem 2.5rem;
+  border-right: var(--border) solid var(--rule);
+  scrollbar-width: thin; scrollbar-color: var(--rule) transparent;
+}
+.sources { display: flex; flex-direction: column; gap: .45rem; margin: 0 0 .95rem; }
+.sources a {
+  font: 500 .64rem/1 var(--font-ui);
+  letter-spacing: calc(.07em * var(--label-tracking)); text-transform: var(--label-case);
+  color: var(--ink-45); text-decoration: none;
+  transition: color .2s ease;
+}
+.sources a::before { content: "+ "; color: var(--rule); }
+.sources a:hover { color: var(--pen); }
+.tags { display: flex; flex-wrap: wrap; gap: .35rem; margin: 0 0 1.4rem; }
+.tag {
+  font: 500 .6rem/1.35 var(--font-ui);
+  letter-spacing: calc(.1em * var(--label-tracking)); text-transform: var(--label-case); color: var(--ink-45);
+  border: var(--border) solid var(--rule);
+  border-radius: var(--radius); padding: .18rem .42rem;
+}
+.tag.is-primary { color: var(--pen); border-color: var(--pen); }
+
+/* Index: every section, and under the entries section every entry. */
+#index .label {
+  display: block; margin: 1.3rem 0 .45rem;
+  font: 700 .6rem/1 var(--font-ui);
+  letter-spacing: calc(.17em * var(--label-tracking)); text-transform: var(--label-case); color: var(--pen);
+}
+#index .label:first-child { margin-top: 0; }
+#index a {
+  display: block; padding: .32rem 0;
+  font: 400 .84rem/1.35 var(--font-body);
+  color: var(--ink-70); text-decoration: none;
+  transition: color .2s ease, transform .2s ease;
+}
+#index a.is-entry {
+  padding: .22rem 0 .22rem .85rem;
+  font: 400 .7rem/1.5 var(--font-ui);
+  color: var(--ink-45);
+}
+#index a:hover { color: var(--ink); transform: translateX(3px); }
+#index a[aria-current="true"] { color: var(--pen); }
+
+.column { min-width: 0; }
+article { padding: clamp(2rem, 5vw, 5rem) clamp(1.5rem, 5vw, 5rem) 0; counter-reset: sec; }
+
+#body > section {
+  margin: 0 0 5.5rem; scroll-margin-top: 1.5rem;
+  counter-increment: sec; counter-reset: entry;
+}
+#body > section > h2 {
+  margin: 0 0 1.2rem;
+  font: var(--display-weight) clamp(2.2rem, 5.2vw, 4.4rem)/.95 var(--font-display);
+  font-variation-settings: var(--display-axes);
+  letter-spacing: var(--display-tracking); text-wrap: balance;
+}
+/* Sections number themselves — the contract never asks the agent to. */
+#body > section > h2::before {
+  content: counter(sec, decimal-leading-zero);
+  display: block; margin: 0 0 .7rem;
+  font: 700 .7rem/1 var(--font-ui);
+  letter-spacing: .17em; color: var(--pen);
+}
+#body > section > h3 {
+  font: var(--display-weight) 1.25rem/1.25 var(--font-display);
+  font-variation-settings: var(--display-axes);
+  margin: 1.75rem 0 .55rem;
+}
+/* The lede reads at deck size; the takeaway is set apart. */
+#body > section:first-of-type > p:first-of-type,
+#body > section.is-takeaway > p {
+  max-width: 46rem;
+  font: 400 1.22rem/1.55 var(--font-body);
+}
+#body > section.is-takeaway > p {
+  font-family: var(--font-display); font-size: 1.5rem; line-height: 1.35;
+  font-variation-settings: var(--display-axes); letter-spacing: -.01em; text-wrap: pretty;
+}
+#body > section.is-takeaway strong { font-weight: 500; }
+
+/* Badges: the cost legend. Filled ones sit on --mark (ink text) or --pen
+   (paper text) — the two pairs themes.py asserts. */
+.badge {
+  display: inline-flex; align-items: center; width: fit-content;
+  padding: .25rem .55rem; border: var(--border) solid currentColor;
+  font: 700 .62rem/1.2 var(--font-ui);
+  letter-spacing: calc(.08em * var(--label-tracking)); text-transform: var(--label-case); color: var(--ink); border-radius: var(--radius); }
+.badge.is-free { background: var(--mark); color: var(--ink); border-color: transparent; }
+.badge.is-paid { background: var(--pen); color: var(--paper); border-color: transparent; }
+td .badge { font-size: .58rem; }
+
+/* Flow: a pipeline of steps, one box each, numbered by CSS. */
+.flow {
+  list-style: none; padding: 1px; margin: 1.6rem 0;
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr)); gap: 1px;
+  background: var(--ink);
+  box-shadow: 6px 6px 0 color-mix(in srgb, var(--ink) 14%, transparent);
+  counter-reset: flow;
+}
+.flow > li {
+  margin: 0; padding: 1rem; min-height: 7.5rem;
+  display: flex; flex-direction: column; gap: .35rem;
+  background: var(--surface); counter-increment: flow;
+}
+.flow > li::before {
+  content: counter(flow, decimal-leading-zero);
+  font: var(--display-weight) 1.8rem/1 var(--font-display); color: var(--pen);
+}
+.flow strong { display: block; font-size: 1rem; }
+.flow > li > :not(strong) { color: var(--ink-70); font-size: .82rem; }
+
+/* Entries: one card per thing. The script wraps the head (name, tagline, badge)
+   and the body (facets, verdict) so the two can be gridded; with JS off the
+   card simply stacks. */
+.entry {
+  display: grid; grid-template-columns: minmax(11rem, .6fr) minmax(0, 1.7fr);
+  margin: 0 0 1.1rem; scroll-margin-top: 1.5rem;
+  border: var(--border) solid var(--ink);
+  border-radius: var(--radius); background: var(--surface);
+  box-shadow: 4px 4px 0 color-mix(in srgb, var(--ink) 12%, transparent);
+  counter-increment: entry;
+}
+.entry > .head { padding: 1.35rem; background: var(--raised); border-right: var(--border) solid var(--ink); }
+.entry > .head::before {
+  content: counter(entry, decimal-leading-zero);
+  display: block; margin: 0 0 .45rem;
+  font: var(--display-weight) 2.6rem/1 var(--font-display); color: var(--pen);
+  font-variation-settings: var(--display-axes);
+}
+.entry h3 {
+  margin: 0;
+  font: var(--display-weight) 1.55rem/1.05 var(--font-display);
+  font-variation-settings: var(--display-axes); letter-spacing: -.02em; text-wrap: balance;
+}
+.entry .tagline { margin: .6rem 0 .85rem; color: var(--ink-70); font-size: .9rem; }
+.entry > .body { padding: 1.35rem; }
+/* Facets: each dt sits over its dd, one column per pair. Column flow means the
+   contract needs no wrapper — one dd per dt is all it asks. */
+.entry dl {
+  display: grid; grid-auto-flow: column; grid-template-rows: auto 1fr;
+  grid-auto-columns: minmax(0, 1fr); gap: 0 1.4rem; margin: 0;
+}
+.entry dt {
+  margin: 0 0 .45rem;
+  font: 700 .64rem/1.3 var(--font-ui);
+  letter-spacing: calc(.12em * var(--label-tracking)); text-transform: var(--label-case); color: var(--ink-45);
+}
+.entry dd { margin: 0; font-size: .95rem; }
+.entry dd p { margin: 0; }
+.entry dd ul { padding-left: 1rem; margin: 0; }
+.entry dd li { margin: 0 0 .3rem; }
+.verdict {
+  margin: 1.1rem 0 0; padding-top: .9rem;
+  border-top: 1px dashed var(--rule);
+  font-size: .95rem;
+}
+.verdict strong { font-weight: 600; }
+
+/* Picks: the recommendation, up to three; the middle one is the highlighted
+   pick and sits on --mark, so everything on it is ink — never pen. */
+.picks {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  gap: 1rem; margin: 1.6rem 0; align-items: start;
+}
+.pick { padding: 1.4rem; border: var(--border) solid var(--ink); background: var(--surface); border-radius: var(--radius); }
+.pick .eyebrow {
+  display: block;
+  font: 700 .62rem/1 var(--font-ui);
+  letter-spacing: calc(.15em * var(--label-tracking)); text-transform: var(--label-case); color: var(--pen);
+}
+.pick .price {
+  margin: .5rem 0 .3rem;
+  font: var(--display-weight) 2.2rem/1 var(--font-display); font-variation-settings: var(--display-axes);
+}
+.pick h3 {
+  margin: 0 0 .6rem;
+  font: var(--display-weight) 1.3rem/1.15 var(--font-display); font-variation-settings: var(--display-axes);
+}
+.pick p { font-size: .95rem; margin: 0 0 .6rem; }
+.pick p:last-child { margin-bottom: 0; }
+.pick:nth-child(2) { background: var(--mark); color: var(--ink); transform: translateY(-.6rem); }
+.pick:nth-child(2) .eyebrow, .pick:nth-child(2) a, .pick:nth-child(2) li::marker { color: var(--ink); }
+
+footer {
+  margin-top: 1rem;
+  padding: 2rem clamp(1.5rem, 5vw, 5rem);
+  background: var(--band); color: var(--on-band);
+  font: 400 .7rem/1.7 var(--font-ui);
+}
+footer a { color: inherit; text-decoration-color: color-mix(in srgb, var(--on-band) 40%, transparent); }
+
+/* --- Entrance: one orchestrated moment, then out of the way --------------- */
+@media (prefers-reduced-motion: no-preference) {
+  .masthead > *, #body > section { animation: rise .6s cubic-bezier(.22,.61,.36,1) backwards; }
+  .facts { animation-delay: .1s; }
+  #body > section:nth-of-type(1) { animation-delay: .12s; }
+  #body > section:nth-of-type(2) { animation-delay: .17s; }
+  #body > section:nth-of-type(n+3) { animation-delay: .22s; }
+}
+@keyframes rise { from { opacity: 0; transform: translateY(8px); } }
+
+/* --- Narrow --------------------------------------------------------------- */
+@media (max-width: 980px) {
+  .masthead { grid-template-columns: 1fr; align-items: start; gap: 2rem; min-height: auto; }
+  .layout { display: block; }
+  .rail {
+    position: static; height: auto; border-right: none;
+    border-bottom: var(--border) solid var(--rule); padding: 1.5rem clamp(1.5rem, 5vw, 5rem);
+  }
+  #index { display: none; }
+  .entry { grid-template-columns: 1fr; }
+  .entry > .head { border-right: none; border-bottom: var(--border) solid var(--ink); }
+  .entry dl { grid-auto-flow: row; grid-template-rows: none; grid-template-columns: 1fr; gap: 1rem 0; }
+  .pick:nth-child(2) { transform: none; }
+  /* A wide matrix scrolls inside its own box rather than setting the page width. */
+  table { display: block; width: max-content; max-width: 100%; overflow-x: auto; }
+}
+
+/* --- Print ---------------------------------------------------------------- */
+@media print {
+  /* !important, or an injected theme would outrank this and print in colour:
+     the reader's chosen values arrive as inline styles on <html>, and an
+     inline style beats every stylesheet rule that is not important. */
+  :root {
+    --paper: #fff !important; --surface: #fff !important; --raised: #f4f4f4 !important; --desk: #fff !important;
+    --ink: #000 !important; --ink-70: #333 !important; --ink-45: #555 !important; --rule: #bbb !important; --pen: #000 !important;
+    --band: #fff !important; --on-band: #000 !important; --mark: #e8e8e8 !important;
+  }
+  body { background: #fff; font-size: 10pt; }
+  body::after, .rail, .watch, .poster { display: none; }
+  .masthead { min-height: auto; padding: 0 0 1cm; border-bottom: 1pt solid #000; backdrop-filter: none; }
+  .facts { border-color: #000; background: none; backdrop-filter: none; }
+  .layout { display: block; }
+  article { padding: 1cm 0 0; }
+  #body > section { margin-bottom: 1.2cm; }
+  .entry, .pick, .flow > li { break-inside: avoid; box-shadow: none; }
+  .pick:nth-child(2) { transform: none; }
+  footer { background: none; padding: .8rem 0 0; border-top: 1pt solid #000; }
+}
+</style>
+</head>
+<body>
+<header class="masthead">
+  <div class="lead">
+    {{MASTHEAD}}
+    <h1>{{TITLE}}</h1>
+  </div>
+  <aside class="facts">
+    <p class="meta">{{META}}</p>
+    <a class="watch" href="{{URL}}" target="_blank" rel="noopener">{{OPEN}} <span>&#8594;</span></a>
+  </aside>
+</header>
+
+<div class="layout">
+  <aside class="rail">
+    {{SOURCES}}
+    {{TAGS}}
+    <div id="index"></div>
+  </aside>
+
+  <div class="column">
+    <article id="body">
+{{BODY}}
+    </article>
+    <footer>{{FOOTER}}</footer>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+  // The body arrives as a flat run of <h2>-delimited blocks (the genre's
+  // contract in genres/fieldguide.md). Progressive enhancement, all of it —
+  // with JS off the note still reads top to bottom:
+  //   1. group each <h2> and its siblings into a <section>
+  //   2. split each .entry into a head and a body so CSS can grid them
+  //   3. build the rail index — sections, and one line per entry — and spy it
+  var body = document.getElementById('body');
+  var index = document.getElementById('index');
+  if (!body) return;
+
+  var takeawayWords = /\b(takeaway|conclusion|conclusión|idea clave|lo esencial)\b/i;
+
+  function slug(text, i) {
+    var s = text.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    return s || 'section-' + i;
+  }
+
+  // 1. Group.
+  var groups = [];
+  var current = null;
+  Array.prototype.slice.call(body.children).forEach(function (node) {
+    if (node.tagName === 'H2') {
+      current = { label: node.textContent.trim(), nodes: [node] };
+      groups.push(current);
+    } else if (current) {
+      current.nodes.push(node);
+    }
+  });
+  if (!groups.length) return;
+
+  body.innerHTML = '';
+  var sections = [];
+  groups.forEach(function (group, i) {
+    var section = document.createElement('section');
+    group.nodes.forEach(function (n) { section.appendChild(n); });
+    section.id = slug(group.label, i);
+    if (takeawayWords.test(group.label)) section.classList.add('is-takeaway');
+    body.appendChild(section);
+    sections.push({ el: section, label: group.label });
+  });
+
+  // 2. Entries: head = name, tagline, badge; body = everything else.
+  var entries = Array.prototype.slice.call(body.querySelectorAll('.entry'));
+  entries.forEach(function (entry, i) {
+    var head = document.createElement('div'); head.className = 'head';
+    var rest = document.createElement('div'); rest.className = 'body';
+    Array.prototype.slice.call(entry.childNodes).forEach(function (n) {
+      var isHead = n.nodeType === 1 && (n.tagName === 'H3'
+        || n.classList.contains('tagline') || n.classList.contains('badge'));
+      (isHead ? head : rest).appendChild(n);
+    });
+    entry.appendChild(head); entry.appendChild(rest);
+    var h3 = entry.querySelector('h3');
+    if (!entry.id) entry.id = 'entry-' + slug(h3 ? h3.textContent : '', i + 1);
+  });
+
+  // 3. Index + scroll-spy.
+  if (!index) return;
+  var links = [];
+  sections.forEach(function (s) {
+    var a = document.createElement('a');
+    a.href = '#' + s.el.id; a.textContent = s.label;
+    index.appendChild(a); links.push(a);
+    Array.prototype.slice.call(s.el.querySelectorAll('.entry')).forEach(function (entry) {
+      var h3 = entry.querySelector('h3');
+      if (!h3) return;
+      var e = document.createElement('a');
+      e.href = '#' + entry.id; e.className = 'is-entry'; e.textContent = h3.textContent.trim();
+      index.appendChild(e);
+    });
+  });
+
+  function mark(id) {
+    links.forEach(function (a) {
+      a.setAttribute('aria-current', a.getAttribute('href') === '#' + id ? 'true' : 'false');
+    });
+  }
+  mark(sections[0].el.id);
+  if (!('IntersectionObserver' in window)) return;
+  var visible = new Map();
+  var observer = new IntersectionObserver(function (entriesSeen) {
+    entriesSeen.forEach(function (entry) {
+      if (entry.isIntersecting) visible.set(entry.target.id, entry.boundingClientRect.top);
+      else visible.delete(entry.target.id);
+    });
+    var best = null;
+    sections.forEach(function (s) { if (best === null && visible.has(s.el.id)) best = s.el.id; });
+    if (best) mark(best);
+  }, { rootMargin: '-18% 0px -70% 0px', threshold: 0 });
+  sections.forEach(function (s) { observer.observe(s.el); });
+})();
+</script>
+</body>
+</html>

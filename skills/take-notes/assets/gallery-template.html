@@ -226,6 +226,10 @@ header {
   font-variant-numeric: tabular-nums;
 }
 .card .kind { text-transform: var(--label-case); color: var(--pen); }
+/* The genre, only when the note has one beyond the offprint: same register as
+   the kind, one step quieter, so "vídeo · receta" reads as one label. */
+.card .genre { text-transform: var(--label-case); color: var(--ink-70); }
+.card .genre::before { content: "· "; color: var(--rule); }
 /* Kind and tag read as one label pair on the left; the date stays flush right
    whether or not the note is tagged. No `overflow: hidden` on the tag — that
    makes it the item flex shrinks, and a clipped "ENGINEE…" defeats the point

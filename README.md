@@ -6,7 +6,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-1.3.0-ab2f19?style=flat-square&labelColor=191511" alt="Version 1.3.0">
+  <img src="https://img.shields.io/badge/version-1.4.0-ab2f19?style=flat-square&labelColor=191511" alt="Version 1.4.0">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-57503f?style=flat-square&labelColor=191511" alt="MIT license"></a>
   <img src="https://img.shields.io/badge/agents-any%20Agent%20Skills%20host-57503f?style=flat-square&labelColor=191511" alt="Compatible with any Agent Skills host">
   <img src="https://img.shields.io/badge/output-html%20%C2%B7%20md%20%C2%B7%20anki-57503f?style=flat-square&labelColor=191511" alt="Output: HTML, Markdown, Anki">
@@ -16,9 +16,10 @@
 
 Point it at a video, an article, a paper, a slide deck, or a repo — or at
 several at once, and they fold into one note. You get a self-contained
-HTML page — executive summary, the one takeaway, key points, and a timestamped
-or sectioned outline — written to `~/take-notes/html_reports/` and opened in
-your browser. They pile up into a browsable archive you own, on your disk, in
+HTML page shaped to what the source is — an argument gets a summary, the one
+takeaway, key points and an outline; a catalogue of tools gets a matrix and a
+card per tool; a recipe gets a ticket, the ingredients and the method — written
+to `~/take-notes/html_reports/` and opened in your browser. They pile up into a browsable archive you own, on your disk, in
 plain HTML that will still open in ten years.
 
 <table>
@@ -173,6 +174,26 @@ from a card — so an archive written in one theme reads in another. The config
 is the default baked into new notes; the menu is what you are reading in now.
 Neither rewrites notes already on disk.
 
+### Genres
+
+A note's **genre** is the shape of its content — which sections it has and
+which template renders them. The skill picks it from what the source *is*,
+after reading it, so a cooking video and a conference talk come out as
+different objects rather than the same outline with different words:
+
+| The source is… | Genre | You get |
+|---|---|---|
+| an argument — a talk, an article, a paper, a docs page, a repo | `offprint` | the annotated offprint: summary, the one takeaway, key points, outline, concepts |
+| several things of one kind on shared axes — tools, models, products, options | `fieldguide` | a full-bleed masthead, a matrix, a card per thing with the same facets, a recommendation |
+| a dish | `recipe` | a ticket of facts, the ingredients pinned beside the method, numbered steps with times and settings |
+
+The default is `offprint`, and it stays the default whenever the call is not
+obvious — a wrong genre is worse than the plain one. Override it for a run with
+`--genre` or in words ("write it as a recipe"); the skill says which genre it
+chose whenever it is not the offprint. Each genre has its own contract under
+[`skills/take-notes/genres/`](skills/take-notes/genres/) and its own template
+under `assets/`; the colour [theme](#theme) applies to all of them.
+
 ### Language
 
 Optional — notes are written in **English** unless you say otherwise.
@@ -220,7 +241,7 @@ silently. You are never prompted to invent a tag mid-run.
 The full grammar, for reference:
 
 ```sh
-/take-notes <url> [more urls…] [focus] [--lang en|es]
+/take-notes <url> [more urls…] [focus] [--lang en|es] [--genre offprint|fieldguide|recipe]
 /take-notes --tags | --add-tag "AI" | --remove-tag "AI" | --retag
 /take-notes --theme | --theme "notebook"
 ```

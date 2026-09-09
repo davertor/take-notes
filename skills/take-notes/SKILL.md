@@ -5,13 +5,13 @@ license: MIT
 compatibility: Requires uv. Video sources also need yt-dlp and ffmpeg, plus network access; an optional Groq or OpenAI key enables Whisper for videos without captions.
 metadata:
   author: davertor
-  version: "1.3.0"
+  version: "1.4.0"
 # Claude Code extensions below — not in the agentskills.io spec, and read at the
 # top level rather than under `metadata`, which is where Claude Code looks.
 # `allowed-tools` stays comma-separated: the spec asks for spaces but marks the
 # field experimental ("support may vary"), and commas are what Claude Code
 # parses today. Do not "correct" either without testing in Claude Code first.
-argument-hint: "<url> [more-urls…] [focus] [--lang en|es] | --tags | --add-tag X | --remove-tag X | --retag | --theme [name]"
+argument-hint: "<url> [more-urls…] [focus] [--lang en|es] [--genre offprint|fieldguide|recipe] | --tags | --add-tag X | --remove-tag X | --retag | --theme [name]"
 allowed-tools: Bash, Read, WebFetch, AskUserQuestion
 disable-model-invocation: true
 ---
@@ -33,7 +33,8 @@ whole thing and fetching only the part that matters — and it narrows what the
 finished notes emphasise in Step 3-4. Skip it to cover a source in full; add it
 ("just the API design part") when only part of a long source is relevant.
 `--tags`, `--add-tag`, and `--remove-tag` manage the tag vocabulary instead, and
-`--theme` the colour palette — see Step 0.
+`--theme` the colour palette — see Step 0. `--genre` forces the note's shape
+when the router's own call is not what you want — see Step 3.
 
 ## Resolve `SKILL_DIR` (before any command, both source types)
 
@@ -118,7 +119,8 @@ regenerated, so it costs the listing and the model's choices, nothing more.
 ## Step 1 — route to the right acquisition guide
 
 Pick **one** reference per source by looking at it, Read it, and follow it. Only
-the acquisition differs; everything after Step 2 is identical for every source.
+the acquisition differs; everything after Step 2 is the same for every source —
+within the genre Step 3 picks from the content.
 
 Match **top to bottom and stop at the first row that fits** — arXiv, Slides and
 GitHub links are `http(s)` pages too, so the catch-all row would swallow them.
@@ -162,9 +164,10 @@ each. Fetching is the only part that repeats: from Step 2 on there is one
 language, one tag, one body, one note.
 
 The **first URL is the primary source**. Everything the note's chrome shows
-comes from it — title, byline, span, canonical URL — and it picks the layout: a
-video first renders the two-pane video note with a poster and timestamps, a
-deck, paper or article first renders the article one. The rest are
+comes from it — title, byline, span, canonical URL — and it picks the masthead:
+a video first gets the poster (and, in the offprint, timestamps), a deck, paper
+or article first gets the byline kicker. The note's *shape* — its genre — is
+Step 3's call, made from the whole set. The rest are
 **companions**: they contribute body, and Step 5 links them in the rail. Order
 is the user's control over that, so take it literally rather than promoting the
 richest source.
@@ -250,12 +253,38 @@ it; do not extend it:
 Say which primary tag you chose in the same short line as the language, without
 justifying it: *Writing in English (default), filed under **Engineering**.*
 
-## Step 3 — read for teaching, not for summarising
+## Step 3 — read for teaching, and pick the genre
 
 Before writing, decide: what does someone who consumed this source now *know*
 that they didn't before? That answer is the takeaway, and everything else
 supports it. Note where the source explains a mechanism (goes in *How it works*),
 defines jargon (*Concepts*), or leaves something unresolved (*Going deeper*).
+
+### Genre
+
+A note's **genre** is the shape of its content — which sections it has and
+which template renders them. It is a property of the source, not a taste, so
+you pick it after reading, from this table, **top to bottom, first row that
+fits**:
+
+| The source is… | Genre | Contract |
+|---|---|---|
+| a dish — ingredients with quantities and a method with times | `recipe` | Read `genres/recipe.md` |
+| several things of one kind described on shared axes — tools, models, products, options, the papers in a survey; four or more of them | `fieldguide` | Read `genres/fieldguide.md` |
+| anything else — a talk, an article, a paper, a docs page, a repo, a lesson | `offprint` | `## Sections` below |
+
+Resolution order, stop at the first that applies: `--genre <name>` in the
+invocation, or a request in words ("write it as a recipe", "hazla como guía")
+→ the table → `offprint`. **When in doubt, `offprint`**: a wrong genre is worse
+than the default, the same rule as for tags. With several sources the genre
+comes from the set as a whole, not from the first URL.
+
+For a genre other than the offprint, Read its contract file now; it replaces
+`## Sections` below and nothing else — `## Rules` still applies in full. Say
+which genre you chose in the same short line as the language and the tag, only
+when it is not the offprint:
+
+> Writing in Spanish per your config, filed under **Cooking**, as a **recipe**.
 
 With several sources, read them **against each other** before writing — that
 comparison is the whole reason they were combined:
@@ -272,7 +301,9 @@ be understood first; a reader should not be able to tell where the seam was.
 
 ## Step 4 — write the notes as HTML
 
-Use the sections below. Write **body HTML only** — no `<html>`, `<head>`,
+Use the sections of the genre you picked in Step 3 — the offprint's are under
+`## Sections` below; the other genres' live in `genres/`. Write **body HTML
+only** — no `<html>`, `<head>`,
 `<body>`, no `<h1>`, and no metadata line: the renderer supplies the document
 shell and the masthead from the fields you collected in Step 1.
 
@@ -287,7 +318,7 @@ Pipe the body HTML to the renderer, filling the flags from your Step 1 fields:
 uv run "${SKILL_DIR}/scripts/render.py" \
   --title "<title>" --byline "<channel or author>" \
   --span "<duration or publication date>" --url "<canonical URL>" \
-  --tag "<primary tag>" <<'HTML'
+  --tag "<primary tag>" --genre "<genre>" <<'HTML'
 <h2>Executive summary</h2>
 ...
 HTML
@@ -295,6 +326,10 @@ HTML
 
 Pass one `--tag` per tag chosen in Step 2, **primary first** — `--tag AI --tag
 Engineering`. With no `--tag` at all the note is filed under `Unknown`.
+
+`--genre` is Step 3's choice — `fieldguide` or `recipe`; leave it off for an
+offprint. `--video-id` still decides the masthead in every genre: a poster with
+it, a byline kicker without.
 
 The masthead flags describe the **primary** source. When the run combined
 several, add one `--source "<label>" "<url>"` per companion, in the order they
@@ -336,6 +371,9 @@ Pass `--lang` matching Step 2's choice (`en` or `es`). Add `--no-open` to skip
 the browser, `--out-dir` to write somewhere other than `~/take-notes/html_reports`.
 
 ## Sections
+
+The offprint's contract — the default genre. `genres/fieldguide.md` and
+`genres/recipe.md` replace this section, and only this section, for theirs.
 
 Mandatory, in this order. The title and metadata line are **not** in the body —
 they come from the renderer flags.
@@ -404,8 +442,9 @@ image before you embed it; a broken-image icon teaches nothing.
 - **Keep the HTML plain:** headings, paragraphs, lists, `<strong>`, `<em>`, links,
   `<pre><code>`, `<blockquote>`, simple tables, and (every source but video)
   `<figure><img><figcaption>` for a source figure. No inline `style` attributes, no
-  `<script>`, no classes — the stylesheet already handles presentation, and a note
-  that fights it will look wrong in dark mode.
+  `<script>`, no classes beyond the ones the genre's contract names — the
+  stylesheet already handles presentation, and a note that fights it will look
+  wrong in dark mode.
 - **Escape what you write:** `&`, `<` and `>` must be `&amp;`, `&lt;`, `&gt;` —
   in prose, in code samples, and in attribute values like an `<img src>` URL
   (image URLs routinely contain an unescaped `&` in their query string). The

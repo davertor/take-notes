@@ -46,6 +46,8 @@ UI = {
         "built": "{dir}",
         "theme_label": "Theme",
         "theme_auto": "Auto",
+        "fieldguide": "field guide",
+        "recipe": "recipe",
     },
     "es": {
         "title": "take-notes — archivo",
@@ -60,6 +62,8 @@ UI = {
         "built": "{dir}",
         "theme_label": "Tema",
         "theme_auto": "Sistema",
+        "fieldguide": "guía",
+        "recipe": "receta",
     },
 }
 
@@ -76,7 +80,10 @@ def tags_of(note: Note) -> tuple[str, ...]:
 
 def card_html(note: Note, number: int, out_dir: Path, strings: dict[str, str]) -> str:
     href = html.escape(os.path.relpath(note.path, out_dir), quote=True)
-    search = html.escape(fold(f"{note.title} {note.byline} {note.detail}"), quote=True)
+    # The genre label only exists for the genres that have one: an offprint is
+    # the default shape and gets no label on the card, so nothing to search by.
+    genre = strings.get(note.genre, "") if note.genre != "offprint" else ""
+    search = html.escape(fold(f"{note.title} {note.byline} {note.detail} {genre}".strip()), quote=True)
     # Pipe-delimited, folded, with both ends closed, so the template's JS can
     # match a whole tag ("|ai|") without "ai" also hitting "|air gap|".
     tags = html.escape("|" + "|".join(fold(t) for t in tags_of(note)) + "|", quote=True)
@@ -113,9 +120,10 @@ def card_html(note: Note, number: int, out_dir: Path, strings: dict[str, str]) -
         f'<span class="tag">{html.escape(note.tag)}</span>'
         if note.tag and fold(note.tag) != fold(DEFAULT_TAG) else ""
     )
+    genre_label = f'<span class="genre">{html.escape(genre)}</span>' if genre else ""
     parts.append(
         '<span class="foot">'
-        f'<span class="kind">{html.escape(strings[note.kind])}</span>{tag}'
+        f'<span class="kind">{html.escape(strings[note.kind])}</span>{genre_label}{tag}'
         f'<span class="date">{stamp}</span></span>'
     )
     parts.append("</a>")
@@ -338,6 +346,25 @@ def _selftest() -> int:
 
     spanish = build_gallery([video], out_dir, notes_dir, lang="es")
     assert "<summary>Tema</summary>" in spanish, "the menu label is translated"
+
+    # Genre: a label on the card for every genre but the offprint, searchable,
+    # and never a KeyError for a note the gallery has not heard of.
+    assert 'class="genre"' not in page, "an offprint carries no genre label"
+    recipe = parse_note(
+        notes_dir / "2026-08-20-dish.html",
+        render.build_genre_document(
+            "recipe", "Tortilla", "<h2>Description</h2><p>Eggs.</p>",
+            byline="Chef", channel_url="https://youtube.com/@c", span="9 min",
+            url="https://youtu.be/abc123", video_id="abc123", tags=["Cocina"],
+        ),
+    )
+    shelf = build_gallery([recipe, video], out_dir, notes_dir, lang="es")
+    assert '<span class="kind">vídeo</span><span class="genre">receta</span>' in shelf, (
+        "the genre label follows the kind on the card foot"
+    )
+    assert 'data-search="tortilla chef 9 min receta"' in shelf, "the label is searchable, appended last"
+    assert shelf.count('class="genre"') == 1, "the offprint on the same shelf gets none"
+    assert "{{" not in shelf
 
     # Themes, the seam that has no other test: the gallery packs a value set
     # into a card's link and the note's inline script unpacks it. The two live
