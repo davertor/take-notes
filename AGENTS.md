@@ -6,30 +6,37 @@ are easy to get wrong from the outside.
 
 ## Cut the release, or the version never moves
 
-**A feature branch does not touch the version by hand.** After a PR is merged,
-and **only** then, on `main`:
+**A feature branch does not touch the version by hand, and neither do you.**
+`.github/workflows/release.yml` runs `cz bump` when a PR is merged into `main`,
+and only then: it reads the Conventional Commits since the last tag, decides
+patch / minor / major, rewrites the version in all five places that mirror it,
+commits `chore(release): X.Y.Z`, tags, and pushes. A PR carrying only `docs`,
+`chore`, `ci`, `style`, `refactor` or `test` releases nothing and passes — those
+changes ship with the next `feat` or `fix`.
 
-```sh
-uvx --from commitizen cz bump --yes && git push --follow-tags
-```
-
-That reads the Conventional Commits since the last tag, decides patch / minor /
-major, rewrites the version in all five places that mirror it, commits
-`chore(release): X.Y.Z` and tags. Nothing is installed — it runs through `uvx`.
+**Put the CHANGELOG entry in the PR itself**, under the version the merge will
+produce. The bot cuts the version but cannot write prose, so an entry written
+after the fact lands in a commit the tag does not contain.
+`uvx --from commitizen cz bump --dry-run --yes` prints the number the merge will
+produce, and `cz changelog --dry-run` groups the commits to write from.
 
 **A commit pushed straight to `main` does not get a release of its own.** It
 stays unreleased and rides the bump that follows the next merged PR, which is
 why the increment is read from a range of commits and not from the last one.
+
+If the workflow is ever wrong, the same bump by hand is:
+
+```sh
+uvx --from commitizen cz bump --yes && git push --follow-tags
+```
 
 **Every release is tagged.** The increment is read from the commits since the
 last tag, so a release that ships without one widens the range the next bump
 reads and can turn a `feat!` from two releases ago into an unwanted major.
 `git push --follow-tags` is part of the command above for that reason.
 
-Then **write the CHANGELOG entry by hand**: `cz` deliberately does not, because
-the entries here are prose that explains what changed and why, not a list of
-commit subjects. `uvx --from commitizen cz changelog --dry-run` prints the
-commits grouped by type, which is a useful checklist to write from.
+`cz` deliberately writes no CHANGELOG of its own: the entries here are prose
+that explains what changed and why, not a list of commit subjects.
 
 ## The rest, in one line each
 

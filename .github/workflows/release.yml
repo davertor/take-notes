@@ -1,0 +1,72 @@
+name: release
+
+# Cut the release the moment a PR lands on main — and only then. A commit
+# pushed straight to main gets no release of its own; it rides the bump that
+# follows the next merged PR. See AGENTS.md § Cut the release.
+on:
+  pull_request:
+    types: [closed]
+    branches: [main]
+
+# Two PRs merged seconds apart would otherwise race on the push. Queue them
+# instead of cancelling: a cancelled release is a version that never happened.
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  bump:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      # The PR event checks out the merge ref by default, which is not a
+      # branch and cannot be pushed. Take main itself, with the full history
+      # and every tag: cz reads the increment from the commits since the last
+      # tag, and a shallow clone would read the wrong range.
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - uses: astral-sh/setup-uv@v5
+
+      - name: Bump the version
+        id: bump
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          set +e
+          uvx --from commitizen cz bump --yes
+          code=$?
+          set -e
+
+          # 21 is NO_COMMITS_TO_BUMP: the PR carried only docs, chore, ci,
+          # style, refactor or test commits. That is a normal outcome, not a
+          # failure — those changes ship with the next feat or fix.
+          if [ $code -eq 21 ]; then
+            echo "nothing to release; the changes ride the next bumpable commit"
+            echo "released=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          [ $code -eq 0 ] || exit $code
+
+          echo "released=true" >> "$GITHUB_OUTPUT"
+          echo "version=$(uvx --from commitizen cz version --project)" >> "$GITHUB_OUTPUT"
+
+      # A GITHUB_TOKEN push deliberately does not trigger other workflows, so
+      # this cannot loop back into itself. It also means ci.yml does not run on
+      # the release commit, which only rewrites version strings.
+      - name: Push the commit and its tag
+        if: steps.bump.outputs.released == 'true'
+        run: git push --follow-tags origin main
+
+      - name: Say what shipped
+        if: steps.bump.outputs.released == 'true'
+        run: |
+          echo "### Released v${{ steps.bump.outputs.version }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "The CHANGELOG entry is written by hand — see AGENTS.md." >> "$GITHUB_STEP_SUMMARY"

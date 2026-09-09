@@ -63,11 +63,18 @@ matches `SKILL.md`'s.
 
 ## Releases
 
-Cut from `main` after a PR merges, never inside the feature branch:
+Cut by CI when a PR merges into `main`, never inside the feature branch and
+never by hand. [`.github/workflows/release.yml`](.github/workflows/release.yml)
+runs, on the merge:
 
 ```sh
 uvx --from commitizen cz bump --yes && git push --follow-tags
 ```
+
+A PR whose commits are all `docs`, `chore`, `ci`, `style`, `refactor` or `test`
+releases nothing and the job still passes; those changes ship with the next
+`feat` or `fix`. A commit pushed straight to `main` gets no release of its own
+either — it rides the next merged PR's bump.
 
 [commitizen](https://commitizen-tools.github.io/commitizen/) reads the
 Conventional Commits since the last tag, decides whether that is a patch, a
@@ -77,11 +84,13 @@ commits `chore(release): X.Y.Z` and tags. It runs through `uvx`, so it is not a
 dependency of anything: nothing is installed and no manifest mentions it. The
 configuration is in [`.cz.toml`](.cz.toml).
 
-**The CHANGELOG stays hand-written.** commitizen is told not to touch it,
-because the entries here are prose explaining what changed and why, and the
-generated form is a list of commit subjects. Write the section yourself;
-`cz changelog --dry-run` prints the commits grouped by type as a checklist so
-none is missed.
+**The CHANGELOG stays hand-written, and its entry belongs in the PR.**
+commitizen is told not to touch it, because the entries here are prose
+explaining what changed and why, and the generated form is a list of commit
+subjects. Since the bot cuts the version on merge, an entry written afterwards
+lands in a commit the tag does not contain — so add the section to the PR under
+the version the merge will produce. `cz bump --dry-run --yes` prints that
+number, and `cz changelog --dry-run` groups the commits as a checklist.
 
 ## House rules
 
