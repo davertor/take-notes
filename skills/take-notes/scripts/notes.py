@@ -66,6 +66,7 @@ class Note:
     kind: str  # "video" | "article"
     tag: str = ""                     # primary tag, the one a card shows
     tags: tuple[str, ...] = ()        # every tag, primary first
+    genre: str = "offprint"           # the content shape; offprint when unmarked
 
 
 def read_config(path: Path | None = None) -> dict:
@@ -250,6 +251,9 @@ def parse_note(path: Path, doc: str) -> Note:
         kind="video" if poster else "article",
         tag=tag,
         tags=tags,
+        # Declared on <html> by the genre templates; every note written before
+        # genres existed carries no attribute and is, by construction, an offprint.
+        genre=attr(r'<html[^>]*\sdata-genre="([a-z]+)"', doc) or "offprint",
     )
 
 
@@ -316,6 +320,32 @@ def _selftest() -> int:
     bare = parse_note(notes_dir / "stray.html", "<html><body><p>hi</p></body></html>")
     assert bare.title == "stray" and bare.kind == "article" and bare.date == ""
     assert (bare.tag, bare.tags) == ("", ()), "a note written before tags existed still parses"
+
+    # Genre: declared on <html> by the genre templates, offprint when absent —
+    # which is every note written before genres existed. Kind still comes from
+    # the poster, so a video recipe is both a video and a recipe.
+    assert video.genre == "offprint" and article.genre == "offprint" and bare.genre == "offprint"
+    guide_doc = render.build_genre_document(
+        "fieldguide", "Guide",
+        '<h2>Executive summary</h2><p>Compared.</p><h2>Entries</h2>'
+        '<section class="entry"><h3>A</h3></section><section class="entry"><h3>B</h3></section>',
+        byline="Sitio", span="Jan 1, 2026", url="https://x.test/g", today="2026-01-01",
+    )
+    guide = parse_note(notes_dir / "2026-08-02-guide.html", guide_doc)
+    assert guide.genre == "fieldguide" and guide.kind == "article" and guide.byline == "Sitio"
+    assert guide.excerpt == "Compared." and guide.source == "https://x.test/g"
+    assert "<h3>B</h3>" in body_html(guide_doc), (
+        "entries are <section>s: an <article> inside #body would end the body at its first close tag"
+    )
+    recipe_doc = render.build_genre_document(
+        "recipe", "Dish", "<h2>Description</h2><p>A dish.</p>",
+        byline="Chef", channel_url="https://youtube.com/@c", span="9 min",
+        url="https://youtu.be/abc123", video_id="abc123", today="2026-01-01",
+    )
+    recipe = parse_note(notes_dir / "2026-08-03-dish.html", recipe_doc)
+    assert recipe.genre == "recipe" and recipe.kind == "video", (recipe.genre, recipe.kind)
+    assert recipe.byline == "Chef" and recipe.detail == "9 min", (recipe.byline, recipe.detail)
+    assert recipe.thumbnail == "https://i.ytimg.com/vi/abc123/hqdefault.jpg"
 
     # Tags round-trip: the primary is the is-primary span, extras follow in
     # document order, and both templates carry the row.

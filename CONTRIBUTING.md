@@ -14,6 +14,26 @@ cd take-notes
 
 No build, no virtualenv, no install step. `uv` provisions Python per script.
 
+### 6. A genre is a contract plus a template
+
+`SKILL.md` Step 3 routes a source's *content* to a genre; each genre is one body
+contract and one template, and the offprint is the default. The offprint's
+contract stays inline in `SKILL.md` (it is the common case and saves a Read per
+note); every other genre's lives in `skills/take-notes/genres/<name>.md`.
+Adding one means:
+
+1. a row in the Step 3 table, above the offprint's catch-all;
+2. `genres/<name>.md` — the sections, in `## Sections`' voice, plus the class
+   vocabulary the template styles (the one exception to "no classes");
+3. `assets/<name>-template.html`, self-contained like the others, carrying the
+   landmarks in the table above, `{{PALETTE}}`, `{{FONTS}}`,
+   `data-genre="{{GENRE}}"`, and `{{MASTHEAD}}` where the poster or kicker goes;
+4. an entry in `GENRE_TEMPLATES` in `scripts/render.py`, a label in both
+   languages of `UI` in `scripts/gallery.py`, and asserts in each `--selftest`.
+
+The theme is orthogonal: a genre template consumes the palette tokens and never
+hard-codes a colour.
+
 ## Verify
 
 There is no test suite. Each script with non-trivial logic carries its own
@@ -98,7 +118,8 @@ styling:
 |---|---|---|
 | `.poster`, `.kicker`, `.meta`, `.watch` | both note templates | the masthead parser |
 | `.tags` / `.tag` / `.tag.is-primary`, immediately above the literal `<div id="index">` | both note templates | the tag parser, the gallery's chips, and `retag.py`'s insertion anchor |
-| `<article id="body">` with a flat run of `<h2>` | both note templates | the section splitter |
+| `<html data-genre="…">` | the genre templates (absent = offprint) | the genre parser, the gallery's card label, the Markdown frontmatter |
+| `<article id="body">` with a flat run of `<h2>` — and no `<article>` inside it | every note template, and every genre contract | the section splitter, which ends the body at the first `</article>` |
 | `<li><strong>term</strong> — definition</li>` | `SKILL.md` Key points / Concepts | the Anki card builder |
 
 `.sources` — the companion links a multi-source note carries — is deliberately

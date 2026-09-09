@@ -110,6 +110,7 @@ def to_markdown(note: Note, doc: str) -> str:
         f"byline: {_yaml(note.byline)}",
         f"date: {note.date or ''}",
         f"kind: {note.kind}",
+        f"genre: {note.genre}",
         f"tags: [{tags}]",
         "---",
         "",
@@ -224,6 +225,7 @@ def _selftest() -> int:
     assert 'title: "Cache: the hard part"' in md, "a colon in a title must stay quoted"
     assert 'source: "https://x.test/?a=1&b=2"' in md, "URL entities decoded once, not twice"
     assert "date: 2026-08-16" in md
+    assert "kind: article\ngenre: offprint\n" in md, "genre rides beside kind in the frontmatter"
     assert 'tags: ["take-notes", "Engineering", "Cache design"]' in md, (
         "every tag reaches the frontmatter, primary first — this is Obsidian's tag pane"
     )
@@ -235,6 +237,24 @@ def _selftest() -> int:
     assert "```\nx <- 1\nif x > 0: pass\n```" in md, "code fences keep raw text"
     assert "> Quoted line." in md
     assert "<" not in md.replace("x <- 1", ""), "no HTML tags survive into Markdown"
+
+    # A genre note exports the same way: its blocks degrade to text where
+    # Markdown has no equivalent, and nothing after the first entry is lost.
+    guide_doc = render.build_genre_document(
+        "fieldguide", "Stack",
+        "<h2>Executive summary</h2><p>Compared.</p><h2>The one takeaway</h2><p><strong>Own less.</strong></p>"
+        '<h2>Entries</h2><section class="entry"><h3>Orca</h3><p class="tagline">Desk.</p>'
+        "<dl><dt>Use</dt><dd><p>Daily.</p></dd></dl></section>"
+        '<section class="entry"><h3>Herdr</h3><p class="tagline">Runtime.</p></section>',
+        byline="Blog", span="Sep 7, 2026", url="https://x.test/stack", today="2026-01-01",
+    )
+    guide = parse_note(notes_dir / "2026-09-07-stack.html", guide_doc)
+    guide_md = to_markdown(guide, guide_doc)
+    assert "genre: fieldguide" in guide_md
+    assert "Orca" in guide_md and "Herdr" in guide_md, "every entry reaches the export"
+    assert [c[0] for c in to_cards(guide, guide_doc)] == ["Stack — The one takeaway"], (
+        "a guide still yields its takeaway card"
+    )
 
     cards = to_cards(note, doc)
     fronts = [c[0] for c in cards]

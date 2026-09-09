@@ -32,6 +32,18 @@ DEFAULT_OUT_DIR = Path.home() / "take-notes" / "html_reports"
 TEMPLATE_PATH = Path(__file__).resolve().parent.parent / "assets" / "template.html"
 ARTICLE_TEMPLATE_PATH = Path(__file__).resolve().parent.parent / "assets" / "article-template.html"
 
+# Genres beyond the offprint: one template each, resolving video vs article
+# inside (only the masthead differs — poster or kicker). The offprint keeps its
+# two files and its own pair of builders below; these go through
+# build_genre_document. Adding a genre is one entry here, one template, one
+# contract under genres/, and one row in SKILL.md's Step 3 table.
+GENRE_TEMPLATES = {
+    "fieldguide": Path(__file__).resolve().parent.parent / "assets" / "fieldguide-template.html",
+    "recipe": Path(__file__).resolve().parent.parent / "assets" / "recipe-template.html",
+}
+DEFAULT_GENRE = "offprint"
+GENRES = (DEFAULT_GENRE, *GENRE_TEMPLATES)
+
 # Kept in step with notes.DEFAULT_TAG, but not imported from it: render.py
 # depends on nothing but the leaf palette module, and stays that way.
 DEFAULT_TAG = "Unknown"
@@ -307,6 +319,82 @@ def build_video_document(
     return doc
 
 
+def masthead_html(
+    strings: dict[str, str],
+    url: str | None,
+    byline: str | None,
+    video_id: str | None = None,
+    thumbnail: str | None = None,
+) -> str:
+    """The one masthead element that tells video from article: the poster or
+    the byline kicker, in the exact markup the offprint templates use, so
+    notes.py reads a genre note back with the same parser.
+
+    No kicker at all when there is no byline: the parser takes the *presence*
+    of `.kicker` as "this is an article", and an empty one would send it down
+    the video branch to read the date as an author.
+    """
+    if video_id or thumbnail:
+        thumb = thumbnail or f"https://i.ytimg.com/vi/{video_id}/hqdefault.jpg"
+        return (
+            f'<a class="poster" href="{html.escape(url or "", quote=True)}" target="_blank" rel="noopener">'
+            f'<img src="{html.escape(thumb, quote=True)}" alt="" loading="lazy">'
+            f'<span class="cue">{html.escape(strings["watch"])}</span></a>'
+        )
+    return f'<span class="kicker">{html.escape(byline)}</span>' if byline else ""
+
+
+def build_genre_document(
+    genre: str,
+    title: str,
+    body: str,
+    byline: str | None = None,
+    channel_url: str | None = None,
+    span: str | None = None,
+    url: str | None = None,
+    video_id: str | None = None,
+    thumbnail: str | None = None,
+    published: str | None = None,
+    views: str | None = None,
+    lang: str = "en",
+    tags: list[str] | None = None,
+    sources: list[tuple[str, str]] | None = None,
+    today: str | None = None,
+    theme: str = themes.AUTO,
+) -> str:
+    """A note in any genre but the offprint. `video_id` (or a thumbnail) picks
+    the poster masthead and the video meta line; otherwise the kicker and the
+    article one, reading time included."""
+    template = GENRE_TEMPLATES[genre]
+    today = today or datetime.date.today().isoformat()
+    strings = UI_STRINGS.get(lang, UI_STRINGS["en"])
+    if video_id or thumbnail:
+        meta = build_video_meta(byline, channel_url, span, published, views)
+    else:
+        meta = build_article_meta(span, format_reading_time(_word_count(body), lang))
+    doc = template.read_text(encoding="utf-8")
+    for token, value in {
+        "{{LANG}}": html.escape(lang, quote=True),
+        "{{PALETTE}}": themes.palette_css(theme),
+        "{{FONTS}}": fonts_link(theme),
+        "{{GENRE}}": genre,
+        "{{TITLE}}": html.escape(title),
+        "{{MASTHEAD}}": masthead_html(strings, url, byline, video_id, thumbnail),
+        "{{URL}}": html.escape(url or "", quote=True),
+        "{{META}}": meta,
+        "{{SOURCES}}": sources_html(sources),
+        "{{TAGS}}": tags_html(tags),
+        "{{BODY}}": body.strip(),
+        "{{OPEN}}": html.escape(strings["open"]),
+        "{{FOOTER}}": rail_footer_html(lang, url, today),
+    }.items():
+        doc = doc.replace(token, value)
+    if "{{" in doc:
+        stray = doc[doc.index("{{"):doc.index("{{") + 30]
+        raise ValueError(f"unresolved {template.name} token near {stray!r}")
+    return doc
+
+
 def _selftest() -> int:
     assert slugify("Never Gonna Give You Up (4K)") == "never-gonna-give-you-up-4k"
     assert slugify("¿Qué es un LLM?") == "que-es-un-llm"
@@ -498,6 +586,43 @@ def _selftest() -> int:
     assert build_article_meta("Jan 1, 2026", None) == "Jan 1, 2026"
     assert "&middot;" in build_article_meta("Jan 1, 2026", "6 min read")
 
+    # Genres: one template each; the masthead decides video (poster) or
+    # article (kicker), and the whole parse contract notes.py relies on holds.
+    for genre in GENRE_TEMPLATES:
+        as_video = build_genre_document(
+            genre, "T", "<h2>Description</h2><p>ok</p>",
+            byline="Chef", channel_url="https://youtube.com/@x", span="11 min",
+            url="https://youtu.be/abc123", video_id="abc123", lang="es", tags=["Cocina"],
+            today="2026-01-01",
+        )
+        assert f'<html lang="es" data-genre="{genre}">' in as_video, genre
+        assert '<a class="poster"' in as_video and '<span class="cue">Ver</span>' in as_video, (
+            "video masthead, with the cue localised by the builder itself"
+        )
+        assert '<span class="kicker">' not in as_video
+        assert '<article id="body">' in as_video and 'id="index"' in as_video
+        assert as_video.index('<p class="tags">') < as_video.index('<div id="index">'), (
+            "the tag row sits right above the index — retag.py's insertion anchor"
+        )
+        assert ">Ver original <" in as_video and "Notas de" in as_video, "Spanish chrome"
+        assert "{{" not in as_video
+
+        as_article = build_genre_document(
+            genre, "T", "<p>" + ("word " * 300) + "</p>",
+            byline="Sitio", span="Jan 1, 2026", url="https://x.test", today="2026-01-01",
+        )
+        assert '<span class="kicker">Sitio</span>' in as_article
+        assert '<a class="poster"' not in as_article
+        assert "Jan 1, 2026 &middot; 2 min read" in as_article, "article meta, reading time included"
+
+        bare = build_genre_document(genre, "T", "<p>x</p>", url="https://x.test", today="2026-01-01")
+        assert '<span class="kicker">' not in bare, (
+            "no byline, no kicker — an empty one would send notes.py down the video branch"
+        )
+        themed = build_genre_document(genre, "T", "<p>x</p>", theme="barbie", today="2026-01-01")
+        assert f'<html lang="en" data-genre="{genre}">' in themed, "genre yes, theme name no"
+        assert "--paper: #fff0f6;" in themed, "the genre templates take resolved values too"
+
     print("selftest: ok")
     return 0
 
@@ -534,6 +659,8 @@ def main() -> int:
     ap.add_argument("--out-dir", default=None, help=f"Output dir (default: {DEFAULT_OUT_DIR})")
     ap.add_argument("--theme", default=None,
                     help=f"{'|'.join(themes.NAMES)} (default: ~/take-notes/config.json, else auto)")
+    ap.add_argument("--genre", default=DEFAULT_GENRE,
+                    help=f"{'|'.join(GENRES)}: the note's content shape (default: {DEFAULT_GENRE})")
     ap.add_argument("--no-open", action="store_true", help="Do not open a browser")
     ap.add_argument("--selftest", action="store_true", help="Run internal asserts and exit")
     args = ap.parse_args()
@@ -561,12 +688,26 @@ def main() -> int:
               file=sys.stderr)
         return 1
     theme = args.theme or themes.configured_theme()
+    if args.genre not in GENRES:
+        print(f"render: unknown genre {args.genre!r} — pick one of {', '.join(GENRES)}",
+              file=sys.stderr)
+        return 1
 
-    if args.video_id:
-        # Localise raw values; anything already human-readable passes through.
-        published = format_date(args.published, args.lang) or args.published
-        views = format_count(args.views, args.lang) or args.views
-        span = format_duration(args.duration, args.lang) or args.span
+    # Localise raw video values; anything already human-readable passes through.
+    # Done before the dispatch so every genre's video masthead reads the same.
+    published = format_date(args.published, args.lang) or args.published
+    views = format_count(args.views, args.lang) or args.views
+    span = format_duration(args.duration, args.lang) or args.span
+
+    if args.genre != DEFAULT_GENRE:
+        document = build_genre_document(
+            args.genre, args.title, body,
+            byline=args.byline, channel_url=args.channel_url, span=span, url=args.url,
+            video_id=args.video_id, thumbnail=args.thumbnail,
+            published=published, views=views, lang=args.lang, tags=args.tag,
+            sources=args.source, theme=theme,
+        )
+    elif args.video_id:
         document = build_video_document(
             args.title, body,
             byline=args.byline, channel_url=args.channel_url, span=span, url=args.url,
