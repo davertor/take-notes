@@ -59,7 +59,10 @@ def main() -> int:
         )
 
     # 2. Step 1 is matched top to bottom, first match wins, so the catch-all is last.
-    routed = re.findall(r"^\|.*`references/([a-z-]+\.md)`.*\|$", skill, re.M)
+    #    Only Step 1's own table routes to an acquisition guide; references/ also
+    #    holds procedures (settings, combining) that other steps point at in prose.
+    step1 = skill[skill.index("## Step 1"):skill.index("## Step 2")]
+    routed = re.findall(r"^\|.*`references/([a-z-]+\.md)`.*\|$", step1, re.M)
     if "web.md" not in routed:
         errors.append("SKILL.md Step 1 has no `references/web.md` catch-all row")
     else:
@@ -70,15 +73,18 @@ def main() -> int:
                 "which matches http(s) first — those rows are unreachable"
             )
 
-    # 3. The table and the directory name the same guides.
+    # 3. Every routed guide exists, and every file shipped under references/ is
+    #    reached from SKILL.md — by a Step 1 row or by name from another step.
     on_disk = {p.name for p in REFERENCES.glob("*.md")}
     for missing in sorted(set(routed) - on_disk):
         errors.append(f"SKILL.md Step 1 routes to references/{missing}, which is not on disk")
     for orphan in sorted(on_disk - set(routed)):
-        errors.append(f"references/{orphan} ships to users but no Step 1 row routes to it")
+        if f"`references/{orphan}`" not in skill:
+            errors.append(f"references/{orphan} ships to users but nothing in SKILL.md reads it")
 
-    # 4. Acquisition guides know nothing about how notes are written.
-    for guide in sorted(REFERENCES.glob("*.md")):
+    # 4. Acquisition guides know nothing about how notes are written. The
+    #    procedures (combining.md in particular) may, so only Step 1's guides.
+    for guide in sorted(REFERENCES / name for name in routed if (REFERENCES / name).exists()):
         copied = [m for m in WRITING_STANDARD_MARKERS if m in guide.read_text(encoding="utf-8")]
         if copied:
             errors.append(

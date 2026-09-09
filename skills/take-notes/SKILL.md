@@ -26,7 +26,7 @@ into a browsable local archive instead of scrolling away in the terminal.
 Invocation: `/take-notes <url> [more urls…] [focus]`. If no URL is given, ask for
 one. Several URLs are **one note about one subject from several sources** — a
 talk and the deck it was given from, a paper and the repo that implements it —
-not one note each; Step 1 says how they combine.
+not one note each; `references/combining.md` says how.
 The optional focus does two things: it narrows what Step 1 asks the source for
 — on a long or multi-topic source, that's the difference between fetching the
 whole thing and fetching only the part that matters — and it narrows what the
@@ -53,68 +53,11 @@ fi
 
 ## Step 0 — settings management short-circuits everything else
 
-These invocations manage the tag vocabulary or the theme instead of writing a
-note. If the invocation is one of them, run the matching command, report the
-result, and **stop** — no source, no note, nothing else in this file applies:
-
-| Invocation | Command |
-|---|---|
-| `/take-notes --tags` | `uv run "${SKILL_DIR}/scripts/tags.py"` |
-| `/take-notes --add-tag "AI"` | `uv run "${SKILL_DIR}/scripts/tags.py" --add "AI"` |
-| `/take-notes --remove-tag "AI"` | `uv run "${SKILL_DIR}/scripts/tags.py" --remove "AI"` |
-| `/take-notes --theme` | `uv run "${SKILL_DIR}/scripts/themes.py"` |
-| `/take-notes --theme "notebook"` | `uv run "${SKILL_DIR}/scripts/themes.py" --set "notebook"` |
-| `/take-notes --retag` | re-files existing notes — the multi-step pass below |
-
-Both editing forms are repeatable — pass `--add` or `--remove` once per tag.
-The script prints the resulting vocabulary; report that, and nothing more. It
-rewrites only the `tags` key, so `language` survives untouched.
-
-`Unknown` cannot be removed: it is the fallback the note writer needs when a
-source fits nothing. The script says so and leaves it in place.
-
-### `--theme` — the colour the archive is painted in
-
-`auto` (the default, following the system) or one of the named themes the
-script lists. Each is a palette *and* a type stack. The script writes `theme` to the config and leaves every
-other key alone; the value is baked into the gallery and into notes written from
-then on. Ask for it in words too — "ponlo en petrol" is this command.
-
-Say so when reporting: **notes already on disk keep the colours they were
-written with.** The reader can still switch theme from the gallery's own menu,
-which applies to that browser and rides along to any note opened from a card.
-
-### `--retag` — re-file the notes already on disk
-
-Filing a note under a new tag used to mean re-running `/take-notes` on its
-source: a refetch and a full rewrite, to change one word in the rail. This pass
-edits the rendered notes instead. Run it after adding tags to a vocabulary that
-was empty or thinner when those notes were written.
-
-1. **Read the vocabulary** — `uv run "${SKILL_DIR}/scripts/tags.py"`. If the
-   only entry is `Unknown`, say so and **stop**: there is nothing to file notes
-   under yet, and the user needs `--add-tag` first.
-2. **List what is on disk** — `uv run "${SKILL_DIR}/scripts/retag.py" --list`.
-   One JSON object per note: path, title, byline, kind, date, current `tags`,
-   an `excerpt`, and `needs_tag`.
-3. **Choose from the vocabulary and nothing else.** For every note with
-   `"needs_tag": true`, pick the entry that fits from the list read in step 1;
-   add further tags after the primary when they genuinely apply. The list is
-   closed — the script rejects anything not on it rather than inventing a tag
-   that would exist on one note and in no chip. Nothing fits, leave it on
-   `Unknown`; a wrong file is worse than an unfiled note.
-4. **Write each one** —
-   `uv run "${SKILL_DIR}/scripts/retag.py" --set "<path>" --tag "<primary>" [--tag "<extra>"]`
-5. **Rebuild the gallery** so the chips match the notes —
-   `uv run "${SKILL_DIR}/scripts/gallery.py"`
-6. Report one line per note re-filed, plus how many were left on `Unknown`.
-
-`"needs_tag": false` means the note already carries a deliberate tag. Leave
-those alone unless the user asked for every note; overwriting a filing someone
-chose is not an update.
-
-The pass rewrites only the rail's tag row. No source is fetched and no prose is
-regenerated, so it costs the listing and the model's choices, nothing more.
+`--tags`, `--add-tag`, `--remove-tag`, `--theme` and `--retag` manage the tag
+vocabulary, the colour palette or the notes already on disk instead of writing
+a note. If the invocation is one of them — as a flag or in words ("ponlo en
+petrol", "re-file my notes") — Read `references/settings.md`, do what it says,
+and **stop**: no source, no note, nothing else in this file applies.
 
 ## Step 1 — route to the right acquisition guide
 
@@ -159,28 +102,10 @@ notes from a title, a description, or a paywall stub.
 
 ### More than one source
 
-Route **each** URL through its own row above and collect the same field set for
-each. Fetching is the only part that repeats: from Step 2 on there is one
-language, one tag, one body, one note.
-
-The **first URL is the primary source**. Everything the note's chrome shows
-comes from it — title, byline, span, canonical URL — and it picks the masthead:
-a video first gets the poster (and, in the offprint, timestamps), a deck, paper
-or article first gets the byline kicker. The note's *shape* — its genre — is
-Step 3's call, made from the whole set. The rest are
-**companions**: they contribute body, and Step 5 links them in the rail. Order
-is the user's control over that, so take it literally rather than promoting the
-richest source.
-
-A **companion** that yields no body is not fatal: name it, say the notes are
-poorer for it, and write from what did arrive. A **primary** that yields no body
-stops the run — the note would be filed under a source it was not written from.
-
-A focus narrows every source at once, which is where it earns the most: two
-full-length sources is the largest input this skill ever takes.
-
-Do not put note-writing guidance in the reference files, and do not put
-acquisition detail here. Two copies of the writing standard will drift.
+Route **each** URL through its own row above and collect the same field set
+for each. Then Read `references/combining.md` before going on: it says which
+source is primary, what a companion that yields nothing means, how the set is
+read as one note, and the `--source` flags Step 5 takes.
 
 ## Step 2 — settle the language and the tag
 
@@ -290,18 +215,7 @@ not the offprint:
 
 > Writing in Spanish per your config, filed under **Cooking**, as a **recipe**.
 
-With several sources, read them **against each other** before writing — that
-comparison is the whole reason they were combined:
-
-- **Overlap** — write it once, from whichever source explains it better. A deck
-  bullet and the sentence spoken over it are one point, not two.
-- **Gaps** — a figure that is on a slide and in no transcript, a number said out
-  loud that is on no slide. These are what the second source bought.
-- **Contradictions** — say so and attribute both. A talk that updates its own
-  deck is worth a line in *Going deeper*.
-
-Never organise the notes by source. One set of sections, ordered by what has to
-be understood first; a reader should not be able to tell where the seam was.
+With several sources, `references/combining.md` § Read applies before you write.
 
 ## Step 4 — write the notes as HTML
 
@@ -356,19 +270,8 @@ Engineering`. With no `--tag` at all the note is filed under `Unknown`.
 `--video-id` still decides the masthead in every genre: a poster with it, a
 byline kicker without.
 
-The masthead flags describe the **primary** source. When the run combined
-several, add one `--source "<label>" "<url>"` per companion, in the order they
-were given:
-
-```bash
---source "Slides" "https://docs.google.com/presentation/d/<DECK_ID>/edit"
-```
-
-They render as a short muted list under the source link. The label names the
-**kind** of source — `Slides`, `Paper`, `Repo`, `Video`, `Article` — in the
-note's own language; the title is already the `<h1>`, and repeating it there
-tells the reader nothing. A companion the run failed to fetch gets no `--source`
-entry: the rail lists what the notes were written from.
+The masthead flags describe the **primary** source; with several sources, add
+the `--source` flags `references/combining.md` § Render describes.
 
 For video sources, also pass whichever of `--video-id <id>`, `--thumbnail <url>`,
 `--channel-url <url>`, `--published <YYYYMMDD>`, `--views <int>`,
@@ -422,13 +325,3 @@ the browser, `--out-dir` to write somewhere other than `~/take-notes/html_report
   in prose, in code samples, and in attribute values like an `<img src>` URL
   (image URLs routinely contain an unescaped `&` in their query string). The
   renderer escapes the masthead fields but passes the body through untouched.
-
-## Related
-
-- `/yt-watch` — frames *and* transcript. Use it directly when the question is visual.
-  `/take-notes` includes its own copy of the transcript path so it runs standalone;
-  neither skill depends on the other being installed.
-- `/notion-summarize-blog` — files a short *webpage* summary straight into the
-  personal Notion database via MCP. `/take-notes` is the long form and stays local:
-  a full study page in `~/take-notes/html_reports/`, reviewed and edited before
-  anything is worth filing.

@@ -33,8 +33,9 @@ uv run scripts/check-drift.py
 ```
 
 It fails if never-auto-invoke stops agreeing across its two files, if the Step 1
-catch-all row moves above a more specific one, if the table and `references/`
-stop naming the same guides, if a guide grows a copy of the writing standard, or
+catch-all row moves above a more specific one, if a file under `references/`
+is reachable from nowhere in `SKILL.md`, if an acquisition guide grows a copy of
+the writing standard, if a genre contract re-declares the spine, or
 if one of a handful of load-bearing rules disappears from `SKILL.md`. It is
 development tooling and is not shipped inside the skill.
 
@@ -99,11 +100,17 @@ conversation. They must move together.
 
 ### 2. `SKILL.md` holds the only copy of the note-writing standard
 
-The guides under `references/` cover **acquisition only**. Each one hands back
+The guides Step 1 routes to cover **acquisition only**. Each one hands back
 the same five fields (title, byline, span, canonical URL, body) whatever the
 source, and knows nothing about how notes are written. Adding a source means
 adding one guide and one routing row — never a second copy of the writing
 rules, which would immediately drift from the first.
+
+`references/` also holds two **procedures** that are not acquisition guides
+and are read only when their case arises: `settings.md` (Step 0 — `--tags`,
+`--theme`, `--retag`) and `combining.md` (Step 1 — several URLs into one
+note). That is the skill's progressive disclosure: `SKILL.md` carries what
+every note needs, and nothing a minority of invocations needs.
 
 The routing table in `SKILL.md` Step 1 is matched **top to bottom, first match
 wins**. `arxiv.org`, `docs.google.com/presentation` and `github.com` are

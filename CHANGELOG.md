@@ -37,6 +37,12 @@ written by hand; the version and the tag come from `cz bump` — see
   genre puts in the spine's, and `check-drift.py` refuses a contract that
   re-declares one. A recipe's opening section is the summary, no longer a
   differently-named *Description*.
+- **`SKILL.md` carries only what every note needs** — 434 lines to 327 per
+  invocation. Settings management (`--tags`, `--theme`, `--retag`) moved to
+  `references/settings.md`, and everything about combining several URLs into
+  one note — spread over Steps 1, 3 and 5 — into `references/combining.md`;
+  each is read only when its case arises. The *Related* section, cross-references
+  to other skills that no note needed, is gone.
 
 ## [1.5.0]
 
