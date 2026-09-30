@@ -35,7 +35,7 @@ uv run scripts/check-drift.py
 It fails if never-auto-invoke stops agreeing across its two files, if the Step 1
 catch-all row moves above a more specific one, if a file under `references/`
 is reachable from nowhere in `SKILL.md`, if an acquisition guide grows a copy of
-the writing standard, if a genre contract re-declares the spine, or
+the writing standard, or
 if one of a handful of load-bearing rules disappears from `SKILL.md`. It is
 development tooling and is not shipped inside the skill.
 
@@ -190,11 +190,9 @@ Adding a **bundled genre** means:
 
 1. `genres/<name>.md` — the front-matter above, then **only the genre's own
    sections**, in the voice of the other contracts, plus the class vocabulary
-   the template styles (the one exception to "no classes"). The spine every
-   genre shares — *Executive summary*, *The one takeaway*, and the optional
-   *Concepts* and *Going deeper* — is declared once in `SKILL.md` Step 4; a
-   contract says what its genre puts there and never writes the heading out
-   again (`check-drift.py` refuses it). Add the name to `BUNDLED_ORDER` in
+   the template styles (the one exception to "no classes"). The only rule
+   every genre shares is that the body opens with a `<p>`, which the gallery
+   card quotes. Add the name to `BUNDLED_ORDER` in
    `scripts/genres.py`, above `offprint`;
 2. if it needs a new **layout**: `assets/<name>-template.html`, self-contained
    like the others, carrying the landmarks in the table above, `{{PALETTE}}`,

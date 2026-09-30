@@ -30,13 +30,16 @@ written by hand; the version and the tag come from `cz bump` — see
   user define a fourth.
 - Every note template records its genre on `<html data-genre>`, the offprint's
   two included, so a user genre on the offprint layout reads back as itself.
-- **The spine is declared once.** Every genre opens with *Executive summary*
-  and *The one takeaway* and may close with *Concepts* and *Going deeper*; that
-  was written out in each contract, three copies free to drift. It now lives in
-  `SKILL.md` Step 4, a contract lists only its own sections and says what its
-  genre puts in the spine's, and `check-drift.py` refuses a contract that
-  re-declares one. A recipe's opening section is the summary, no longer a
-  differently-named *Description*.
+- **Recipes are a cookbook page, not a study note.** Out go *The one
+  takeaway*, *Concepts* and *Going deeper*; the sections are now *Description*,
+  *Card*, *Ingredients*, *Steps*, *Tips*, and the optional *Gallery* and *Gaps*
+  — what the source never measured or said, named and never filled in. The
+  card has a fixed core on every recipe so they compare across the archive —
+  *Category* (a closed list), *Yield* (*1 loaf*, *24 cookies*, not servings),
+  *Active time*, *Total time*, *Setup* (oven and tin together) — plus a few
+  fields per category, like *Proof* for bread. Difficulty and unit conversions
+  are no longer invented. A recipe now exports no Anki cards, having neither
+  a takeaway nor concepts.
 - **`SKILL.md` carries only what every note needs** — 434 lines to 327 per
   invocation. Settings management (`--tags`, `--theme`, `--retag`) moved to
   `references/settings.md`, and everything about combining several URLs into

@@ -18,15 +18,19 @@ itself — never write the numbers.
 
 ## Sections
 
-In the spine (SKILL.md Step 4): the summary says what is being compared, on
-what axes, and the verdict in one line; the takeaway is the one rule for
-choosing between these things. Then, mandatory, in this order:
+Mandatory, in this order:
 
-1. `<h2>Matrix</h2>` — one `<table>`, one row per thing, 3–4 columns for the
+1. `<h2>Executive summary</h2>` — 3–5 sentences: what is being compared, on
+   what axes, and the verdict in one line. Opens with a `<p>`: the gallery card
+   quotes it.
+2. `<h2>The one takeaway</h2>` — 1–2 sentences wrapped in `<strong>`. The one
+   rule for choosing between these things. If you can't name one, the notes
+   aren't ready.
+3. `<h2>Matrix</h2>` — one `<table>`, one row per thing, 3–4 columns for the
    axes the source actually uses (what it is, status or cost, what it is for,
    the hidden cost…). A `<span class="badge">` is allowed in a cell (see
    *Blocks*). Every thing in the matrix gets an entry below, and vice versa.
-2. `<h2>Entries</h2>` — one `<section class="entry">` per thing, 5–15 of them,
+4. `<h2>Entries</h2>` — one `<section class="entry">` per thing, 5–15 of them,
    in the matrix's order:
 
    ```html
@@ -52,7 +56,7 @@ choosing between these things. Then, mandatory, in this order:
    **`<section>`, never `<article>`.** The parser that feeds the gallery and
    the exporters ends the body at the first `</article>`; an article per entry
    would lose everything after the first one.
-3. `<h2>Recommendation</h2>` — up to three picks, then one paragraph on the
+5. `<h2>Recommendation</h2>` — up to three picks, then one paragraph on the
    order to adopt them:
 
    ```html
@@ -67,10 +71,13 @@ choosing between these things. Then, mandatory, in this order:
    The middle pick is the highlighted one — put the recommendation for most
    readers there. `<div>`, never `<article>`, for the same reason as above.
 
-The spine's optional *Going deeper* is, in this genre, what is verified and
-what is not: the date prices and licences were checked, what "free" does and
-does not cover, what the source leaves open, and a `<ul>` of the official
-sources consulted. No optionals of its own.
+Optional — include only when the source actually earns it, never as an empty heading:
+
+- `<h2>Concepts</h2>` — jargon the source assumes, as
+  `<li><strong>term</strong> — definition</li>`.
+- `<h2>Going deeper</h2>` — what is verified and what is not: the date prices
+  and licences were checked, what "free" does and does not cover, what the
+  source leaves open, and a `<ul>` of the official sources consulted.
 
 ## Blocks
 

@@ -23,7 +23,6 @@ SKILL = ROOT / "skills/take-notes/SKILL.md"
 CHANGELOG = ROOT / "CHANGELOG.md"
 REFERENCES = ROOT / "skills/take-notes/references"
 CODEX_AGENT = ROOT / "skills/take-notes/agents/openai.yaml"
-GENRES = ROOT / "skills/take-notes/genres"
 
 # Rules the output rests on, each dropped without a single assert firing.
 REQUIRED_PHRASES = {
@@ -37,9 +36,6 @@ REQUIRED_PHRASES = {
 # SKILL.md and the contracts under genres/; the guides under references/ are
 # acquisition only.
 WRITING_STANDARD_MARKERS = ("Executive summary", "The one takeaway", "Didactic means")
-
-# The sections every genre shares, declared in SKILL.md Step 4 and nowhere else.
-SPINE_HEADINGS = ("Executive summary", "The one takeaway", "Concepts", "Going deeper")
 
 
 def main() -> int:
@@ -109,19 +105,7 @@ def main() -> int:
             "from genres/*.md front-matter; edit the `when:` there instead"
         )
 
-    # 7. The spine — summary, takeaway, concepts, going deeper — is declared once,
-    #    in SKILL.md Step 4. A contract that writes one of those headings out
-    #    again is a second copy that will drift from the first.
-    for contract in sorted(GENRES.glob("*.md")):
-        text = contract.read_text(encoding="utf-8")
-        copied = [h for h in SPINE_HEADINGS if f"<h2>{h}</h2>" in text]
-        if copied:
-            errors.append(
-                f"genres/{contract.name} re-declares the spine section(s) {', '.join(copied)} — "
-                "say what the genre puts there instead; the heading is SKILL.md Step 4's"
-            )
-
-    # 8. The version that ships is a version someone can read the notes for.
+    # 7. The version that ships is a version someone can read the notes for.
     version = re.search(r'^\s*version:\s*"([^"]+)"', skill, re.M)
     if version is None:
         errors.append("SKILL.md has no `version:` in its frontmatter")

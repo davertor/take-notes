@@ -19,13 +19,16 @@ the renderer writes when told nothing.
 
 ## Sections
 
-After the spine's summary and takeaway (SKILL.md Step 4), mandatory, in this
-order:
+Mandatory, in this order:
 
-1. `<h2>Key points</h2>` — a `<ul>` of 5–10 items, each
+1. `<h2>Executive summary</h2>` — 3–5 sentences: what the source covers and what
+   it argues. Opens with a `<p>`: the gallery card quotes it.
+2. `<h2>The one takeaway</h2>` — 1–2 sentences wrapped in `<strong>`. The single
+   most important insight. If you can't name one, the notes aren't ready.
+3. `<h2>Key points</h2>` — a `<ul>` of 5–10 items, each
    `<li><strong>Claim</strong> — the detail that supports it</li>`.
    Cap at 10; more than that is a transcript with bullets in front of it.
-2. The outline, rendered to match the source:
+4. The outline, rendered to match the source:
    - video → `<h2>Timestamped outline</h2>`, one `<li>` per topic:
      `<li><a href="https://youtu.be/<ID>?t=754s">12:34</a> — <strong>Topic</strong> — one-line summary</li>`
      Use absolute `?t=<seconds>s` URLs so the links jump to the right moment.
@@ -40,11 +43,15 @@ order:
    through inline deep links wherever a point comes from it: a slide's
    `<a href="<deck URL>#slide=id.<PAGE_ID>">`, a video's `?t=<seconds>s`.
 
-Optional, beyond the spine's *Concepts* and *Going deeper* — include only when
-the source actually earns it, never as an empty heading:
+Optional — include only when the source actually earns it, never as an empty heading:
 
+- `<h2>Concepts</h2>` — jargon the source assumes or introduces, as
+  `<li><strong>term</strong> — definition</li>`. Include a term only if not
+  knowing it blocks understanding the notes.
 - `<h2>How it works</h2>` — an `<ol>` for a mechanism, pipeline, or worked example
   the source demonstrates. Code goes in `<pre><code>`.
+- `<h2>Going deeper</h2>` — what the source leaves open: unanswered questions,
+  claims made without evidence, and the concrete next thing to read or try.
 
 **Source figures** — `web.md` and `arxiv.md` return the diagrams, charts, and
 screenshots the page carried; `slides.md` returns an image URL for every slide.
