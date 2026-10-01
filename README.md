@@ -6,7 +6,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-1.5.0-ab2f19?style=flat-square&labelColor=191511" alt="Version 1.5.0">
+  <img src="https://img.shields.io/badge/version-1.6.0-ab2f19?style=flat-square&labelColor=191511" alt="Version 1.6.0">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-57503f?style=flat-square&labelColor=191511" alt="MIT license"></a>
   <img src="https://img.shields.io/badge/agents-any%20Agent%20Skills%20host-57503f?style=flat-square&labelColor=191511" alt="Compatible with any Agent Skills host">
   <img src="https://img.shields.io/badge/output-html%20%C2%B7%20md%20%C2%B7%20anki-57503f?style=flat-square&labelColor=191511" alt="Output: HTML, Markdown, Anki">

@@ -7,7 +7,7 @@
 # mirrors it, commits and tags. See CONTRIBUTING.md § Releases.
 [tool.commitizen]
 name = "cz_conventional_commits"
-version = "1.5.0"
+version = "1.6.0"
 tag_format = "v$version"
 
 # Annotated, like the tags already in this repo — and because `git push
