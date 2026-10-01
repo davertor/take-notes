@@ -1,3 +1,10 @@
+---
+layout: fieldguide
+label-en: field guide
+label-es: guía
+when: several things of one kind described on shared axes — tools, models, products, options, the papers in a survey; four or more of them
+---
+
 # Genre — field guide (a comparative catalogue)
 
 The body contract for a source that presents **several things of one kind on
@@ -11,8 +18,7 @@ itself — never write the numbers.
 
 ## Sections
 
-Mandatory, in this order. The title and metadata line are **not** in the body —
-they come from the renderer flags.
+Mandatory, in this order:
 
 1. `<h2>Executive summary</h2>` — 3–5 sentences: what is being compared, on
    what axes, and the verdict in one line. Opens with a `<p>`: the gallery card

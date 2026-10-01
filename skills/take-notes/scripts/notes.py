@@ -275,9 +275,10 @@ def parse_note(path: Path, doc: str) -> Note:
         kind="video" if poster else "article",
         tag=tag,
         tags=tags,
-        # Declared on <html> by the genre templates; every note written before
-        # genres existed carries no attribute and is, by construction, an offprint.
-        genre=attr(r'<html[^>]*\sdata-genre="([a-z]+)"', doc) or "offprint",
+        # Declared on <html> by every template; a note written before genres
+        # existed carries no attribute and is, by construction, an offprint. A
+        # user's genre name is a slug, so digits and hyphens are allowed.
+        genre=attr(r'<html[^>]*\sdata-genre="([a-z0-9-]+)"', doc) or "offprint",
         sources=parse_sources(doc),
     )
 

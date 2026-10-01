@@ -22,9 +22,10 @@ from pathlib import Path
 
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-# The one import from the rest of the skill, and deliberately a leaf: themes.py
-# is pure palette data at import time, so this pulls in no note parsing. The
-# alternative was the same block of CSS copied into every template.
+# The only imports from the rest of the skill, and deliberately leaves: themes.py
+# is pure palette data at import time and genres.py reads contract files, so
+# neither pulls in any note parsing.
+import genres  # noqa: E402
 import themes  # noqa: E402
 
 
@@ -32,17 +33,18 @@ DEFAULT_OUT_DIR = Path.home() / "take-notes" / "html_reports"
 TEMPLATE_PATH = Path(__file__).resolve().parent.parent / "assets" / "template.html"
 ARTICLE_TEMPLATE_PATH = Path(__file__).resolve().parent.parent / "assets" / "article-template.html"
 
-# Genres beyond the offprint: one template each, resolving video vs article
-# inside (only the masthead differs — poster or kicker). The offprint keeps its
-# two files and its own pair of builders below; these go through
-# build_genre_document. Adding a genre is one entry here, one template, one
-# contract under genres/, and one row in SKILL.md's Step 3 table.
-GENRE_TEMPLATES = {
+# A genre names its layout, and the layouts are the closed set: one template
+# each beyond the offprint, resolving video vs article inside (only the
+# masthead differs — poster or kicker). The offprint layout keeps its two
+# files and its own pair of builders below; the others go through
+# build_genre_document. A user's genre under ~/take-notes/genres/ picks one of
+# these and needs nothing here — see genres.py.
+LAYOUT_TEMPLATES = {
     "fieldguide": Path(__file__).resolve().parent.parent / "assets" / "fieldguide-template.html",
     "recipe": Path(__file__).resolve().parent.parent / "assets" / "recipe-template.html",
 }
-DEFAULT_GENRE = "offprint"
-GENRES = (DEFAULT_GENRE, *GENRE_TEMPLATES)
+DEFAULT_GENRE = genres.DEFAULT
+assert set(LAYOUT_TEMPLATES) | {DEFAULT_GENRE} == set(genres.LAYOUTS), "every layout has a template"
 
 # Kept in step with notes.DEFAULT_TAG, but not imported from it: render.py
 # depends on nothing but the leaf palette module, and stays that way.
@@ -226,6 +228,7 @@ def build_article_document(
     sources: list[tuple[str, str]] | None = None,
     today: str | None = None,
     theme: str = themes.AUTO,
+    genre: str = DEFAULT_GENRE,
 ) -> str:
     today = today or datetime.date.today().isoformat()
     strings = UI_STRINGS.get(lang, UI_STRINGS["en"])
@@ -233,6 +236,7 @@ def build_article_document(
     doc = ARTICLE_TEMPLATE_PATH.read_text(encoding="utf-8")
     for token, value in {
         "{{LANG}}": html.escape(lang, quote=True),
+        "{{GENRE}}": genre,
         "{{PALETTE}}": themes.palette_css(theme),
         "{{FONTS}}": fonts_link(theme),
         "{{TITLE}}": html.escape(title),
@@ -292,6 +296,7 @@ def build_video_document(
     sources: list[tuple[str, str]] | None = None,
     today: str | None = None,
     theme: str = themes.AUTO,
+    genre: str = DEFAULT_GENRE,
 ) -> str:
     thumb = thumbnail or (f"https://i.ytimg.com/vi/{video_id}/hqdefault.jpg" if video_id else "")
     today = today or datetime.date.today().isoformat()
@@ -299,6 +304,7 @@ def build_video_document(
     doc = TEMPLATE_PATH.read_text(encoding="utf-8")
     for token, value in {
         "{{LANG}}": html.escape(lang, quote=True),
+        "{{GENRE}}": genre,
         "{{PALETTE}}": themes.palette_css(theme),
         "{{FONTS}}": fonts_link(theme),
         "{{TITLE}}": html.escape(title),
@@ -361,11 +367,13 @@ def build_genre_document(
     sources: list[tuple[str, str]] | None = None,
     today: str | None = None,
     theme: str = themes.AUTO,
+    layout: str | None = None,
 ) -> str:
-    """A note in any genre but the offprint. `video_id` (or a thumbnail) picks
+    """A note in any layout but the offprint. `video_id` (or a thumbnail) picks
     the poster masthead and the video meta line; otherwise the kicker and the
-    article one, reading time included."""
-    template = GENRE_TEMPLATES[genre]
+    article one, reading time included. `layout` defaults to the genre's own
+    name, which is what the bundled genres are; a user's genre names one."""
+    template = LAYOUT_TEMPLATES[layout or genre]
     today = today or datetime.date.today().isoformat()
     strings = UI_STRINGS.get(lang, UI_STRINGS["en"])
     if video_id or thumbnail:
@@ -589,9 +597,24 @@ def _selftest() -> int:
     assert build_article_meta("Jan 1, 2026", None) == "Jan 1, 2026"
     assert "&middot;" in build_article_meta("Jan 1, 2026", "6 min read")
 
-    # Genres: one template each; the masthead decides video (poster) or
+    # Every layout records the genre on <html>: the offprint's own two builders
+    # write it too, so a user's genre on that layout reads back as itself and
+    # not as an offprint — and the default stays the literal "offprint".
+    assert '<html lang="en" data-genre="offprint">' in article_doc, article_doc[:80]
+    assert '<html lang="en" data-genre="offprint">' in video_doc
+    meeting = build_article_document(
+        "T", "<p>x</p>", url="https://x.test", today="2026-01-01", genre="meeting-notes",
+    )
+    assert '<html lang="en" data-genre="meeting-notes">' in meeting, meeting[:80]
+    on_layout = build_genre_document(
+        "tasting", "T", "<p>x</p>", url="https://x.test", today="2026-01-01", layout="fieldguide",
+    )
+    assert '<html lang="en" data-genre="tasting">' in on_layout, "the genre's name, not the layout's"
+    assert 'class="entry"' in on_layout or ".entry" in on_layout, "rendered with the fieldguide template"
+
+    # Layouts: one template each; the masthead decides video (poster) or
     # article (kicker), and the whole parse contract notes.py relies on holds.
-    for genre in GENRE_TEMPLATES:
+    for genre in LAYOUT_TEMPLATES:
         as_video = build_genre_document(
             genre, "T", "<h2>Description</h2><p>ok</p>",
             byline="Chef", channel_url="https://youtube.com/@x", span="11 min",
@@ -663,7 +686,8 @@ def main() -> int:
     ap.add_argument("--theme", default=None,
                     help=f"{'|'.join(themes.NAMES)} (default: ~/take-notes/config.json, else auto)")
     ap.add_argument("--genre", default=DEFAULT_GENRE,
-                    help=f"{'|'.join(GENRES)}: the note's content shape (default: {DEFAULT_GENRE})")
+                    help=f"The note's content shape — any installed genre, see genres.py --list "
+                         f"(default: {DEFAULT_GENRE})")
     ap.add_argument("--no-open", action="store_true", help="Do not open a browser")
     ap.add_argument("--selftest", action="store_true", help="Run internal asserts and exit")
     args = ap.parse_args()
@@ -691,9 +715,10 @@ def main() -> int:
               file=sys.stderr)
         return 1
     theme = args.theme or themes.configured_theme()
-    if args.genre not in GENRES:
-        print(f"render: unknown genre {args.genre!r} — pick one of {', '.join(GENRES)}",
-              file=sys.stderr)
+    genre = genres.resolve(args.genre)
+    if genre is None:
+        names = ", ".join(g.name for g in genres.installed())
+        print(f"render: unknown genre {args.genre!r} — pick one of {names}", file=sys.stderr)
         return 1
 
     # Localise raw video values; anything already human-readable passes through.
@@ -702,13 +727,15 @@ def main() -> int:
     views = format_count(args.views, args.lang) or args.views
     span = format_duration(args.duration, args.lang) or args.span
 
-    if args.genre != DEFAULT_GENRE:
+    # The layout picks the builder; the genre's name is what the note records,
+    # so a user's genre on the offprint layout still reads back as itself.
+    if genre.layout != DEFAULT_GENRE:
         document = build_genre_document(
-            args.genre, args.title, body,
+            genre.name, args.title, body,
             byline=args.byline, channel_url=args.channel_url, span=span, url=args.url,
             video_id=args.video_id, thumbnail=args.thumbnail,
             published=published, views=views, lang=args.lang, tags=args.tag,
-            sources=args.source, theme=theme,
+            sources=args.source, theme=theme, layout=genre.layout,
         )
     elif args.video_id:
         document = build_video_document(
@@ -716,13 +743,13 @@ def main() -> int:
             byline=args.byline, channel_url=args.channel_url, span=span, url=args.url,
             video_id=args.video_id, thumbnail=args.thumbnail,
             published=published, views=views, lang=args.lang, tags=args.tag,
-            sources=args.source, theme=theme,
+            sources=args.source, theme=theme, genre=genre.name,
         )
     else:
         document = build_article_document(
             args.title, body,
             byline=args.byline, span=args.span, url=args.url, lang=args.lang,
-            tags=args.tag, sources=args.source, theme=theme,
+            tags=args.tag, sources=args.source, theme=theme, genre=genre.name,
         )
 
     # Re-running on the same source the same day updates that note rather than

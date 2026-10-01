@@ -22,6 +22,7 @@ import webbrowser
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import genres  # noqa: E402
 import themes  # noqa: E402
 from notes import (  # noqa: E402
     DEFAULT_TAG, NOTES_DIR, Note, collect, fold, length_of, read_config,
@@ -57,8 +58,6 @@ UI = {
         "update": "take-notes {latest} is out — you have {local}. Update: {url}",
         "theme_label": "Theme",
         "theme_auto": "Auto",
-        "fieldguide": "field guide",
-        "recipe": "recipe",
     },
     "es": {
         "title": "take-notes — archivo",
@@ -74,8 +73,6 @@ UI = {
         "update": "take-notes {latest} ya está disponible — tienes la {local}. Actualiza: {url}",
         "theme_label": "Tema",
         "theme_auto": "Sistema",
-        "fieldguide": "guía",
-        "recipe": "receta",
     },
 }
 
@@ -90,11 +87,12 @@ def tags_of(note: Note) -> tuple[str, ...]:
     return note.tags
 
 
-def card_html(note: Note, number: int, out_dir: Path, strings: dict[str, str]) -> str:
+def card_html(note: Note, number: int, out_dir: Path, strings: dict[str, str], lang: str = "en") -> str:
     href = html.escape(os.path.relpath(note.path, out_dir), quote=True)
-    # The genre label only exists for the genres that have one: an offprint is
-    # the default shape and gets no label on the card, so nothing to search by.
-    genre = strings.get(note.genre, "") if note.genre != "offprint" else ""
+    # The offprint is the default shape and gets no label on the card, so
+    # nothing to search by. Any other genre shows its label — or its bare name
+    # when the contract it was written under is no longer installed.
+    genre = genres.label(note.genre, lang) if note.genre != genres.DEFAULT else ""
     search = html.escape(fold(f"{note.title} {note.byline} {note.detail} {genre}".strip()), quote=True)
     # Pipe-delimited, folded, with both ends closed, so the template's JS can
     # match a whole tag ("|ai|") without "ai" also hitting "|air gap|".
@@ -231,7 +229,7 @@ def build_gallery(
     selftest does not depend on whatever is in the running user's config.
     """
     strings = UI.get(lang, UI["en"])
-    cards = "\n".join(card_html(n, i + 1, out_dir, strings) for i, n in enumerate(notes))
+    cards = "\n".join(card_html(n, i + 1, out_dir, strings, lang) for i, n in enumerate(notes))
     doc = TEMPLATE_PATH.read_text(encoding="utf-8")
     for token, value in {
         "{{LANG}}": html.escape(lang, quote=True),
@@ -422,6 +420,14 @@ def _selftest() -> int:
     )
     assert 'data-search="tortilla chef 9 min receta"' in shelf, "the label is searchable, appended last"
     assert shelf.count('class="genre"') == 1, "the offprint on the same shelf gets none"
+    # A note written under a user genre outlives the contract file: with the
+    # file gone the card falls back to the bare name rather than to nothing.
+    orphan = parse_note(
+        notes_dir / "2026-08-04-orphan.html",
+        render.build_article_document("O", "<p>x</p>", url="https://x.test", genre="paper-review"),
+    )
+    assert orphan.genre == "paper-review", orphan.genre
+    assert '<span class="genre">paper-review</span>' in build_gallery([orphan], out_dir, notes_dir)
     assert "{{" not in shelf
 
     # Themes, the seam that has no other test: the gallery packs a value set

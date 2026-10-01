@@ -190,9 +190,19 @@ different objects rather than the same outline with different words:
 The default is `offprint`, and it stays the default whenever the call is not
 obvious — a wrong genre is worse than the plain one. Override it for a run with
 `--genre` or in words ("write it as a recipe"); the skill says which genre it
-chose whenever it is not the offprint. Each genre has its own contract under
-[`skills/take-notes/genres/`](skills/take-notes/genres/) and its own template
-under `assets/`; the colour [theme](#theme) applies to all of them.
+chose whenever it is not the offprint. Each genre is one contract under
+[`skills/take-notes/genres/`](skills/take-notes/genres/) — a front-matter block
+naming its layout and the "the source is…" line the router reads, then the
+sections the skill writes — rendered by one of three layouts under `assets/`;
+the colour [theme](#theme) applies to all of them.
+
+**Your own genres** go in `~/take-notes/genres/<name>.md`, in the same shape.
+Pick a layout, write the sections, and it is routable the moment you give it a
+`when:` line — or leave that out and use it by name with `--genre <name>`,
+which is the safe way to try one. A file named like a bundled genre replaces
+it: copy `recipe.md` there and change the facts on the card to have your own
+recipe. `uv run skills/take-notes/scripts/genres.py --list` prints what is
+installed, in the order the router reads it.
 
 ### Language
 
@@ -241,7 +251,7 @@ silently. You are never prompted to invent a tag mid-run.
 The full grammar, for reference:
 
 ```sh
-/take-notes <url> [more urls…] [focus] [--lang en|es] [--genre offprint|fieldguide|recipe]
+/take-notes <url> [more urls…] [focus] [--lang en|es] [--genre <name>]
 /take-notes --tags | --add-tag "AI" | --remove-tag "AI" | --retag
 /take-notes --theme | --theme "notebook"
 ```
